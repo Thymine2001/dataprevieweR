@@ -7,7 +7,7 @@ It allows you to load tabular datasets, explore their structure, filter observat
 
 ---
 ## 📊 Function Preview
-<img width="1902" height="983" alt="image" src="https://github.com/user-attachments/assets/f36eda6b-b494-4bc1-aa2f-a51e9bfc6a7a" />
+![1bg88-cdgof](https://github.com/user-attachments/assets/da7ff150-084f-4b3f-81d0-e9f02f1d5416)
 
 
 ## ✨ Features
