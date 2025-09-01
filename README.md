@@ -41,7 +41,7 @@ After installation, load the package and run the app:
 
 ``` r
 library(dataprevieweR)
-run_app()
+dataprevieweR::run_app()
 ```
 
 A Shiny app will launch in your default browser, allowing interactive
