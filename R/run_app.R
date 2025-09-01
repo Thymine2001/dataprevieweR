@@ -17,22 +17,22 @@ run_app <- function(
   options(shiny.maxRequestSize = 2000 * 1024^2)
 
   # --- Ensure required packages are installed and loaded ---
-  check_and_install_packages <- function(packages) {
-    for (pkg in packages) {
-      if (!requireNamespace(pkg, quietly = TRUE)) {
-        message(paste("\U0001F4E6 Installing package:", pkg))
-        tryCatch({
-          install.packages(pkg, repos = "https://cran.rstudio.com/")
-        }, error = function(e) {
-          stop(paste("Failed to install package:", pkg, ". Error:", e$message))
-        })
-      }
-      suppressPackageStartupMessages(library(pkg, character.only = TRUE))
-    }
-  }
+#  check_and_install_packages <- function(packages) {
+#    for (pkg in packages) {
+#      if (!requireNamespace(pkg, quietly = TRUE)) {
+#        message(paste("\U0001F4E6 Installing package:", pkg))
+        #tryCatch({
+        #  install.packages(pkg, repos = "https://cran.rstudio.com/")
+       # }, error = function(e) {
+        #  stop(paste("Failed to install package:", pkg, ". Error:", e$message))
+        #})
+      #}
+      #suppressPackageStartupMessages(library(pkg, character.only = TRUE))
+    #}
+  #}
 
   required_packages <- c("shiny", "DT", "dplyr", "ggplot2", "readr", "shinythemes", "tidyr")
-  check_and_install_packages(required_packages)
+  #check_and_install_packages(required_packages)
 
   # --- Launch the app ---
   with_golem_options(
