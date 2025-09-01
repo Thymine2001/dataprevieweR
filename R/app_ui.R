@@ -1,158 +1,177 @@
-#' The application User-Interface
+#' Application User Interface
 #'
-#' @param request Internal parameter for `{shiny}`.
-#'     DO NOT REMOVE.
-#' @import shiny
+#' @param request Internal parameter for {shiny}. DO NOT REMOVE.
 #' @noRd
 app_ui <- function(request) {
-  tagList(
-    # Leave this function for adding external resources
-    #golem_add_external_resources(),
-    # Your application UI logic
-    fluidPage(
-      fluidPage(
-        theme = shinytheme("flatly"),
-        tags$head(
-          tags$style(HTML("
-      @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap');
 
-      /* 标题 */
-      .title-panel {
-        text-align: center;
-        margin-top: 20px;
-        margin-bottom: 30px;
-        background-color: #CEB888; /* Purdue Gold background for title bar */
-        padding: 15px; /* Add padding for a polished look */
-        border-radius: 5px; /* Optional: slight rounding for aesthetics */
-      }
-      .title-panel h1 {
-        font-family: 'Roboto Slab', serif;
-        font-size: 48px;
-        font-weight: 700;
-        color: #000000; /* 黑色文字 */
-        margin: 0; /* Remove default margin for better alignment */
-      }
-      /* 背景 & 全局文字 */
-      body {
-        background-color: #FFFFFF; /* 白底 */
-        color: #000000; /* 黑字 */
-      }
-      /* Sidebar / 面板 */
-      .sidebar {
-        background-color: #F9F9F9; /* 浅灰背景 */
-        border: 1px solid #E0E0E0;
-      }
-      .well {
-        background-color: #F9F9F9;
-        border: 1px solid #E0E0E0;
-      }
-      /* Purdue Gold 按钮 */
-      .btn-primary {
-        background-color: #CEB888; /* Purdue Gold */
-        border-color: #CEB888;
-        color: #000000;
-        font-weight: bold;
-      }
-      .btn-primary:hover {
-        background-color: #B89D5D;
-        border-color: #B89D5D;
-        color: #000000;
-      }
-      .btn-success {
-        background-color: #CEB888;
-        border-color: #CEB888;
-        color: #000000;
-        font-weight: bold;
-      }
-      .btn-success:hover {
-        background-color: #B89D5D;
-        border-color: #B89D5D;
-      }
-      /* 选项卡 */
-      .nav-tabs > li > a {
-        color: #000000;
-        font-weight: bold;
-      }
-      .nav-tabs > li.active > a {
-        background-color: #FFFFFF;
-        color: #000000;
-        border-color: #CEB888;
-        border-bottom: 2px solid #CEB888;
-      }
-      /* 表格 */
-      .dataTable th {
-        background-color: #F5F5F5;
-        color: #000000;
-      }
-      .dataTable td {
-        color: #000000;
-      }
-      .dataTables_wrapper .dataTables_paginate .paginate_button {
-        color: #000000 !important;
-      }
-      .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-        background: #CEB888 !important;
-        color: #000000 !important;
-      }
-      /* 输入框 */
-      select, input[type='number'], input[type='file'] {
-        background-color: #FFFFFF;
-        color: #000000;
-        border: 1px solid #CEB888;
-      }
-      select option {
-        background-color: #FFFFFF;
-        color: #000000;
-      }
-    "))
-        ),
+  shiny::tagList(
+    # If you later need external resources, re-enable this:
+    # golem_add_external_resources(),
 
-        # Title panel with custom class for styling
-        div(class = "title-panel",
-            h1("Data Preview and QC Tool")
-        ),
+    shiny::fluidPage(
+      theme = shinythemes::shinytheme("flatly"),
 
-        sidebarLayout(
-          sidebarPanel(
-            wellPanel(
-              fileInput("file", "Upload CSV File (First row as header)")
-            ),
-            selectInput("columns", "🗂️ Select Column Names (Multi-select supported)", choices = NULL, multiple = TRUE),
-            selectInput("plotType", "📊 Plot Type", choices = c("Histogram" = "histogram", "Boxplot" = "boxplot"), selected = "histogram"),
-            conditionalPanel(
-              condition = "input.plotType == 'histogram'",
-              numericInput("bins", "Histogram Bin Size", value = 30, min = 1, step = 1)
-            ),
-            h4("QC Filter Options"),
-            radioButtons("filterType", "Filter Type",
-                         choices = c("Threshold Range" = "threshold",
-                                     "Standard Deviation Multiplier (± Mean)" = "sd",
-                                     "IQR Multiplier" = "iqr")),
-            conditionalPanel(
-              condition = "input.filterType == 'threshold'",
-              numericInput("minVal", "Minimum Threshold", value = NA),
-              numericInput("maxVal", "Maximum Threshold", value = NA)
-            ),
-            conditionalPanel(
-              condition = "input.filterType == 'sd'",
-              numericInput("sdMultiplier", "Standard Deviation Multiplier", value = 2, min = 0.1, step = 0.1)
-            ),
-            conditionalPanel(
-              condition = "input.filterType == 'iqr'",
-              numericInput("iqrMultiplier", "IQR Multiplier", value = 1.5, min = 0.1, step = 0.1)
-            ),
-            actionButton("applyFilter", "Apply Filter", class = "btn-primary"),
-            downloadButton("downloadData", "Download Filtered Data", class = "btn-success")
+      # -------------------- Head: CSS --------------------
+      shiny::tags$head(
+        shiny::tags$style(shiny::HTML("
+          /* Title bar */
+          .title-panel {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            background-color: #CEB888; /* Purdue Gold background */
+            padding: 15px;
+            border-radius: 5px;
+          }
+          .title-panel h1 {
+            font-family: 'Roboto Slab', serif;
+            font-size: 48px;
+            font-weight: 700;
+            color: #000000;
+            margin: 0;
+          }
+
+          /* Page background & global text */
+          body {
+            background-color: #FFFFFF; /* white background */
+            color: #000000;            /* black text */
+          }
+
+          /* Sidebar */
+          .well {
+            background-color: #F9F9F9; /* light gray background */
+            border: 1px solid #E0E0E0;
+          }
+
+          /* Buttons */
+          .btn-primary, .btn-success {
+            background-color: #CEB888;
+            border-color: #CEB888;
+            color: #000000;
+            font-weight: bold;
+          }
+          .btn-primary:hover, .btn-success:hover {
+            background-color: #B89D5D;
+            border-color: #B89D5D;
+            color: #000000;
+          }
+
+          /* Tabs */
+          .nav-tabs > li > a {
+            color: #000000;
+            font-weight: bold;
+          }
+          .nav-tabs > li.active > a {
+            background-color: #FFFFFF;
+            color: #000000;
+            border-color: #CEB888;
+            border-bottom: 2px solid #CEB888;
+          }
+
+          /* Tables */
+          .dataTable th {
+            background-color: #F5F5F5;
+            color: #000000;
+          }
+          .dataTable td {
+            color: #000000;
+          }
+          .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: #000000 !important;
+          }
+          .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #CEB888 !important;
+            color: #000000 !important;
+          }
+
+          /* Inputs */
+          select, input[type='number'], input[type='file'] {
+            background-color: #FFFFFF;
+            color: #000000;
+            border: 1px solid #CEB888;
+          }
+          select option {
+            background-color: #FFFFFF;
+            color: #000000;
+          }
+        "))
+      ),
+
+      # -------------------- Title --------------------
+      shiny::div(class = "title-panel",
+                 shiny::h1("Data Preview and QC Tool")
+      ),
+
+      # -------------------- Layout --------------------
+      shiny::sidebarLayout(
+
+        # ---- LEFT: controls ----
+        shiny::sidebarPanel(
+          shiny::wellPanel(
+            shiny::fileInput("file", "Upload CSV File (First row as header)")
           ),
 
-          mainPanel(
-            tabsetPanel(
-              tabPanel("Data Preview",
-                       plotOutput("preDistPlot"),
-                       DT::dataTableOutput("previewTable")),
-              tabPanel("QC Results",
-                       DT::dataTableOutput("filterStats"),
-                       plotOutput("comparisonPlots", height = "600px"))
+          shiny::selectInput(
+            "columns",
+            shiny::HTML("&#x1F5C2;&#xFE0F; Select Column Names (Multi-select supported)"),
+            choices = NULL, multiple = TRUE
+          ),
+
+          shiny::selectInput(
+            "plotType",
+            shiny::HTML("&#x1F4CA; Plot Type"),
+            choices = c("Histogram" = "histogram", "Boxplot" = "boxplot"),
+            selected = "histogram"
+          ),
+
+          shiny::conditionalPanel(
+            condition = "input.plotType == 'histogram'",
+            shiny::numericInput("bins", "Histogram Bin Size", value = 30, min = 1, step = 1)
+          ),
+
+          shiny::h4("QC Filter Options"),
+
+          shiny::radioButtons(
+            "filterType", "Filter Type",
+            choices = c(
+              "Threshold Range" = "threshold",
+              "Mean +/- Times Standard Deviation Multiplier" = "sd",
+              "IQR Multiplier" = "iqr"
+            )
+          ),
+
+          shiny::conditionalPanel(
+            condition = "input.filterType == 'threshold'",
+            shiny::numericInput("minVal", "Minimum Threshold", value = NA),
+            shiny::numericInput("maxVal", "Maximum Threshold", value = NA)
+          ),
+
+          shiny::conditionalPanel(
+            condition = "input.filterType == 'sd'",
+            shiny::numericInput("sdMultiplier", "Standard Deviation Multiplier", value = 2, min = 0.1, step = 0.1)
+          ),
+
+          shiny::conditionalPanel(
+            condition = "input.filterType == 'iqr'",
+            shiny::numericInput("iqrMultiplier", "IQR Multiplier", value = 1.5, min = 0.1, step = 0.1)
+          ),
+
+          shiny::actionButton("applyFilter", "Apply Filter", class = "btn btn-primary"),
+          shiny::downloadButton("downloadData", "Download Filtered Data", class = "btn btn-success")
+        ),
+
+        # ---- RIGHT: outputs ----
+        shiny::mainPanel(
+          shiny::tabsetPanel(
+            shiny::tabPanel(
+              "Data Preview",
+              shiny::plotOutput("preDistPlot"),
+              DT::dataTableOutput("previewTable")
+            ),
+            shiny::tabPanel(
+              "QC Results",
+              DT::dataTableOutput("filterStats"),
+              shiny::plotOutput("comparisonPlots", height = "600px")
             )
           )
         )
@@ -161,27 +180,19 @@ app_ui <- function(request) {
   )
 }
 
-#' Add external Resources to the Application
-#'
-#' This function is internally used to add external
-#' resources inside the Shiny application.
-#'
-#' @import shiny
-#' @importFrom golem add_resource_path activate_js favicon bundle_resources
+#' Add external resources to the application
 #' @noRd
 golem_add_external_resources <- function() {
-  add_resource_path(
-    "www",
-    app_sys("app/www")
-  )
+  www_path <- system.file("app/www", package = "dataprevieweR")
 
-  tags$head(
-    favicon(),
-    bundle_resources(
-      path = app_sys("app/www"),
+  # 正确的 Shiny 函数名（驼峰）
+  shiny::addResourcePath("www", www_path)
+
+  shiny::tags$head(
+    golem::favicon(),
+    golem::bundle_resources(
+      path = www_path,
       app_title = "dataprevieweR"
     )
-    # Add here other external resources
-    # for example, you can add shinyalert::useShinyalert()
   )
 }

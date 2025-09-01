@@ -4,7 +4,7 @@
 #' @param options Options list passed to shinyApp
 #' @param enableBookmarking Bookmarking mode
 #' @param uiPattern URL pattern for the UI
-#' @export
+#' @noRd
 run_app <- function(
     onStart = NULL,
     options = list(),
@@ -19,11 +19,11 @@ run_app <- function(
   check_and_install_packages <- function(packages) {
     for (pkg in packages) {
       if (!requireNamespace(pkg, quietly = TRUE)) {
-        message(paste("📦 Installing package:", pkg))
+        message(paste("\U0001F4E6 Installing package:", pkg))
         tryCatch({
           install.packages(pkg, repos = "https://cran.rstudio.com/")
         }, error = function(e) {
-          stop(paste("❌ Failed to install package:", pkg, ". Error:", e$message))
+          stop(paste("Failed to install package:", pkg, ". Error:", e$message))
         })
       }
       suppressPackageStartupMessages(library(pkg, character.only = TRUE))

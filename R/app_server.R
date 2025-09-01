@@ -1,11 +1,13 @@
-#' The application server-side
+#' Application server-side logic
 #'
 #' @param input,output,session Internal parameters for {shiny}.
-#'     DO NOT REMOVE.
-#' @import shiny
+#'   DO NOT REMOVE.
 #' @noRd
 app_server <- function(input, output, session) {
-  ## 读取上传文件
+  # your server code here
+}
+app_server <- function(input, output, session) {
+
   data <- reactive({
     req(input$file)
     tryCatch({
@@ -16,30 +18,30 @@ app_server <- function(input, output, session) {
     })
   })
 
-  # 更新可选列
+
   observe({
     req(data())
     updateSelectInput(session, "columns", choices = names(data()))
   })
 
-  # 选中的列（预览用，不强制数值）
+
   selectedData <- reactive({
     req(input$columns, data())
     data() %>% dplyr::select(dplyr::all_of(input$columns))
   })
 
-  # 预览表
+
   output$previewTable <- DT::renderDataTable({
     req(selectedData())
     selectedData()
   }, options = list(pageLength = 10, dom = 't'))
 
-  # 预筛选分布图
+
   output$preDistPlot <- renderPlot({
     req(selectedData(), input$plotType)
     df_long <- selectedData() %>%
       tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
-      dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>% # 转数值
+      dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
       dplyr::filter(!is.na(Value))
 
     if (nrow(df_long) == 0) {
@@ -68,7 +70,7 @@ app_server <- function(input, output, session) {
   filteredData <- eventReactive(input$applyFilter, {
     req(input$columns, data())
 
-    # 用完整数据集，先把参与筛选的列转为 numeric（不影响其他列）
+
     df <- data()
     for (col in input$columns) {
       df[[col]] <- suppressWarnings(as.numeric(df[[col]]))
@@ -84,7 +86,7 @@ app_server <- function(input, output, session) {
         keep <- rep(TRUE, nrow(df))
         if (!is.na(min_val)) keep <- keep & (df[[col]] >= min_val | is.na(df[[col]]))
         if (!is.na(max_val)) keep <- keep & (df[[col]] <= max_val | is.na(df[[col]]))
-        # 对不满足条件的，设为 NA（列式筛除）
+
         df[[col]][!keep] <- NA
         filtered_count <- sum(!is.na(df[[col]]))
         filter_stats[[col]] <- list(
@@ -129,12 +131,12 @@ app_server <- function(input, output, session) {
     list(data = df, stats = filter_stats)
   })
 
-  # 筛选统计（表格）
+
   output$filterStats <- DT::renderDataTable({
     req(filteredData())
     stats <- filteredData()$stats
 
-    # 无筛选结果时返回空表
+
     if (length(stats) == 0) {
       return(DT::datatable(
         data.frame(Column = character(0), Original = integer(0),
@@ -143,7 +145,7 @@ app_server <- function(input, output, session) {
       ))
     }
 
-    # 逐列汇总（Original = Removed + Remaining）
+
     df <- data.frame(
       Column = names(stats),
       Original = sapply(stats, function(x) (x$removed %||% 0) + (x$remaining %||% 0)),
@@ -153,7 +155,7 @@ app_server <- function(input, output, session) {
     )
     df$RemovalRate <- ifelse(df$Original > 0, df$Removed / df$Original, NA_real_)
 
-    # 添加总计行
+
     total_row <- data.frame(
       Column = "Total",
       Original = sum(df$Original, na.rm = TRUE),
@@ -165,7 +167,7 @@ app_server <- function(input, output, session) {
     )
     df <- rbind(df, total_row)
 
-    # 展示为交互表 + 千位分隔 + 百分比
+
     DT::datatable(
       df,
       rownames = FALSE,
@@ -175,7 +177,7 @@ app_server <- function(input, output, session) {
       DT::formatPercentage("RemovalRate", 2)
   })
 
-  # 对比图：筛前 vs 筛后
+
   output$comparisonPlots <- renderPlot({
     req(filteredData(), input$plotType)
 
@@ -217,7 +219,7 @@ app_server <- function(input, output, session) {
     }
   })
 
-  # 下载筛后的数据
+
   output$downloadData <- downloadHandler(
     filename = function() {
       paste("filtered_data_", Sys.Date(), ".csv", sep = "")
