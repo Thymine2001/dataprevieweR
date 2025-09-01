@@ -110,7 +110,7 @@ remotes::install_local("dataprevieweR_0.0.0.9000.tar.gz", dependencies = TRUE)
 
 ``` r
 library(dataprevieweR)
-run_app()
+dataprevieweR::run_app()
 ```
 
 浏览器将启动一个 Shiny 应用，允许交互式数据探索。
