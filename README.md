@@ -25,14 +25,14 @@ Install the development version from GitHub
 
 ``` r
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-remotes::install_github("Thymine2001/dataviewR")
+remotes::install_github("Thymine2001/dataprevieweR")
 ```
 
 Install from a local source tarball
 
 ``` r
 setwd("C:/Users/YourPath/")
-remotes::install_local("dataviewR_0.0.0.9000.tar.gz", dependencies = TRUE)
+remotes::install_local("dataprevieweR_0.0.0.9000.tar.gz", dependencies = TRUE)
 ```
 
 ## 🚀 Usage
@@ -40,7 +40,7 @@ remotes::install_local("dataviewR_0.0.0.9000.tar.gz", dependencies = TRUE)
 After installation, load the package and run the app:
 
 ``` r
-library(dataviewR)
+library(dataprevieweR)
 run_app()
 ```
 
@@ -65,7 +65,7 @@ shiny - golem - config - DT - dplyr - ggplot2
 Contributions are welcome! - Report issues via the Issues page. - SubGPL-3
 pull requests to improve features or documentation.
 
-If you use dataviewR in your research or projects, we'd love to hear
+If you use dataprevieweR in your research or projects, we'd love to hear
 your feedback!
 
 ## 📜 License
@@ -74,9 +74,9 @@ This project is released under the GPL-3 License.
 
 ------------------------------------------------------------------------
 
-# dataviewR 中文说明
+# dataprevieweR 中文说明
 
-dataviewR 是一个基于 golem 框架构建的交互式 R Shiny
+dataprevieweR 是一个基于 golem 框架构建的交互式 R Shiny
 应用，用于快速预览数据和质量控制 (QC)。
 它可以加载表格数据集，探索其结构，筛选记录，并实时可视化分布。
 
@@ -94,14 +94,14 @@ dataviewR 是一个基于 golem 框架构建的交互式 R Shiny
 
 ``` r
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-remotes::install_github("Thymine2001/dataviewR")
+remotes::install_github("Thymine2001/dataprevieweR")
 ```
 
 从本地源文件安装
 
 ``` r
 setwd("C:/Users/YourPath/")
-remotes::install_local("dataviewR_0.0.0.9000.tar.gz", dependencies = TRUE)
+remotes::install_local("dataprevieweR_0.0.0.9000.tar.gz", dependencies = TRUE)
 ```
 
 ## 🚀 使用方法
@@ -109,7 +109,7 @@ remotes::install_local("dataviewR_0.0.0.9000.tar.gz", dependencies = TRUE)
 安装完成后，加载包并运行应用：
 
 ``` r
-library(dataviewR)
+library(dataprevieweR)
 run_app()
 ```
 
@@ -133,7 +133,7 @@ ggplot2
 欢迎贡献！ - 通过 Issues 页面报告问题。 - 提交 pull requests
 以改进功能或文档。
 
-如果你在研究或项目中使用 dataviewR，我们非常期待你的反馈！
+如果你在研究或项目中使用 dataprevieweR，我们非常期待你的反馈！
 
 ## 📜 许可证
 
