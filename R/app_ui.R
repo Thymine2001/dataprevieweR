@@ -99,7 +99,7 @@ app_ui <- function(request) {
 
       # -------------------- Title --------------------
       shiny::div(class = "title-panel",
-                 shiny::h1("Data Preview and QC Tool")
+                 shiny::h1("datapreviewR: A data review and QC tool")
       ),
 
       # -------------------- Layout --------------------
@@ -107,8 +107,23 @@ app_ui <- function(request) {
 
         # ---- LEFT: controls ----
         shiny::sidebarPanel(
+         ## div(
+          ##  style = "text-align: center;",
+          ##  radioButtons(
+          ##    "language", "Language / 语言",
+          ##    choices = c("English" = "en", "中文" = "zh"),
+          ##    selected = "en",
+          ##    inline = TRUE
+          #  )
+          #),
           shiny::wellPanel(
-            shiny::fileInput("file", "Upload CSV File (First row as header)")
+            shiny::fileInput(
+              "file",
+              "Upload Data File (csv, txt, xlsx, rds, etc.)",
+              accept = c(".csv", ".txt", ".tsv", ".xlsx", ".xls", ".rds")
+            ),
+            shiny::HTML("<span style='color: #444;'> Supported file types: <strong>.csv</strong>, <strong>.tsv</strong>, <strong>.txt</strong>, <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.rds</strong><br>
+ <em>Note: First row must be column headers.</em></span>")
           ),
 
           shiny::selectInput(
@@ -163,15 +178,21 @@ app_ui <- function(request) {
         # ---- RIGHT: outputs ----
         shiny::mainPanel(
           shiny::tabsetPanel(
+            id = "mainTabs",
             shiny::tabPanel(
               "Data Preview",
+              br(), br(),
+              shiny::uiOutput("plotDownloadUI"),
               shiny::plotOutput("preDistPlot"),
               DT::dataTableOutput("previewTable")
             ),
             shiny::tabPanel(
               "QC Results",
               DT::dataTableOutput("filterStats"),
-              shiny::plotOutput("comparisonPlots", height = "600px")
+              shiny::plotOutput("comparisonPlots", height = "600px"),
+              br(),
+              shiny::downloadButton("downloadComparisonPlot", "Download Comparison Plot (PNG)", class = "btn btn-success",
+                                    style = "float: right;")
             )
           )
         )

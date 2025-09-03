@@ -16,6 +16,8 @@ Imports:
     golem,
     magrittr,
     readr,
+    readxl,
+    tools,
     shiny,
     shinythemes,
     tidyr

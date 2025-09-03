@@ -3,17 +3,50 @@
 #' @param input,output,session Internal parameters for {shiny}.
 #'   DO NOT REMOVE.
 #' @noRd
-app_server <- function(input, output, session) {
-  # your server code here
-}
+plot_ready <- reactiveVal(FALSE)
+labels <- list(
+  file_upload = list(
+    en = "Upload Data File (csv, txt, xlsx, rds, etc.)",
+    zh = "上传数据文件（csv、txt、xlsx、rds 等）"
+  ),
+  supported_types = list(
+    en = " Supported file types: <strong>.csv</strong>, <strong>.tsv</strong>, <strong>.txt</strong>, <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.rds</strong><br> <em>Note: First row must contain column headers.</em>",
+    zh = " 支持的文件类型：<strong>.csv</strong>、<strong>.tsv</strong>、<strong>.txt</strong>、<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.rds</strong><br> <em>注意：第一行必须包含列名（header）。</em>"
+  )
+)
 app_server <- function(input, output, session) {
 
   data <- reactive({
     req(input$file)
+
+    ext <- tools::file_ext(input$file$name)
+    filepath <- input$file$datapath
+
     tryCatch({
-      readr::read_csv(input$file$datapath, col_names = TRUE)
+      res <- switch(tolower(ext),
+                    "csv"  = readr::read_csv(filepath, col_names = TRUE),
+                    "tsv"  = readr::read_tsv(filepath, col_names = TRUE),
+                    "txt"  = read.table(filepath, header = TRUE, sep = "", stringsAsFactors = FALSE),
+                    "xlsx" = readxl::read_excel(filepath),
+                    "xls"  = readxl::read_excel(filepath),
+                    "rds"  = readRDS(filepath),
+                    NULL   # fallback
+      )
+
+      if (is.null(res)) {
+        showNotification(
+          HTML(paste0("🚫 <strong>Unsupported file type:</strong> <code>", ext, "</code>")),
+          type = "error"
+        )
+        return(NULL)
+      } else {
+        return(res)
+      }
     }, error = function(e) {
-      showNotification("Error reading CSV file. Please ensure it is a valid CSV with headers.", type = "error")
+      showNotification(
+        HTML("⚠️ <strong>Error reading file.</strong> Please check the file format."),
+        type = "error"
+      )
       return(NULL)
     })
   })
@@ -43,10 +76,11 @@ app_server <- function(input, output, session) {
       tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
       dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
       dplyr::filter(!is.na(Value))
-
+    plot_ready(TRUE)
     if (nrow(df_long) == 0) {
       showNotification("No numeric data available for plotting.", type = "warning")
       return(NULL)
+
     }
 
     if (input$plotType == "histogram") {
@@ -57,12 +91,22 @@ app_server <- function(input, output, session) {
         theme_minimal(base_size = 14) +
         theme(plot.title = element_text(hjust = 0.5))
     } else {
-      ggplot(df_long, aes(y = Value, x = Column)) +
+      #ggplot(df_long, aes(y = Value, x = Column)) +
+       # geom_boxplot(fill = "#DB3124", alpha = 0.7) +
+        #labs(title = "Pre-Filter Data Distribution (Boxplot)", x = "Column", y = "Value") +
+        #theme_minimal(base_size = 14) +
+        #theme(axis.text.x = element_text(angle = 45, hjust = 1),
+         #     plot.title = element_text(hjust = 0.5))
+      ggplot(df_long, aes(y = Value)) +
         geom_boxplot(fill = "#DB3124", alpha = 0.7) +
+        facet_wrap(~ Column, scales = "free") +
         labs(title = "Pre-Filter Data Distribution (Boxplot)", x = "Column", y = "Value") +
         theme_minimal(base_size = 14) +
-        theme(axis.text.x = element_text(angle = 45, hjust = 1),
-              plot.title = element_text(hjust = 0.5))
+        theme(
+          plot.title = ggplot2::element_text(hjust = 0.5),
+          axis.text.x = ggplot2::element_blank(),  # 没必要显示 x 轴（因为只有一个 box）
+          axis.ticks.x = ggplot2::element_blank()
+        )
     }
   })
 
@@ -229,4 +273,123 @@ app_server <- function(input, output, session) {
       readr::write_csv(filteredData()$data, file)
     }
   )
+  observeEvent(input$applyFilter, {
+    updateTabsetPanel(session, inputId = "mainTabs", selected = "QC Results")
+  }
+  )
+  output$downloadPlot <- downloadHandler(
+    filename = function() {
+      paste0("pre_filter_plot_", Sys.Date(), ".png")
+    },
+    content = function(file) {
+      req(selectedData(), input$plotType)
+
+      df_long <- selectedData() %>%
+        tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
+        dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
+        dplyr::filter(!is.na(Value))
+
+      if (nrow(df_long) == 0) {
+        showNotification("No data available to download.", type = "warning")
+        return(NULL)
+      }
+
+      # 使用 png 设备保存图像
+      grDevices::png(file, width = 1200, height = 800, res = 120)
+
+      if (input$plotType == "histogram") {
+        p <- ggplot(df_long, aes(x = Value)) +
+          geom_histogram(bins = input$bins, fill = "#DB3124", alpha = 0.7) +
+          facet_wrap(~ Column, scales = "free") +
+          labs(title = "Pre-Filter Data Distribution", x = "Value", y = "Frequency") +
+          theme_minimal(base_size = 14) +
+          theme(plot.title = element_text(hjust = 0.5))
+      } else {
+        p <- ggplot(df_long, aes(y = Value)) +
+          geom_boxplot(fill = "#DB3124", alpha = 0.7) +
+          facet_wrap(~ Column, scales = "free") +
+          labs(title = "Pre-Filter Data Distribution (Boxplot)", x = "Column", y = "Value") +
+          theme_minimal(base_size = 14) +
+          theme(
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_blank(),
+            axis.ticks.x = element_blank()
+          )
+      }
+
+      print(p)
+      grDevices::dev.off()
+    }
+  )
+  output$plotDownloadUI <- renderUI({
+    if (plot_ready()) {
+      downloadButton("downloadPlot", "Download Plot (PNG)", class = "btn btn-success")
+    }
+  })
+  output$downloadComparisonPlot <- downloadHandler(
+    filename = function() {
+      paste0("comparison_plot_", Sys.Date(), ".png")
+    },
+    content = function(file) {
+      req(filteredData(), input$plotType)
+
+      # prepare pre-filter long data
+      pre_long <- selectedData() %>%
+        tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
+        dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
+        dplyr::filter(!is.na(Value)) %>%
+        dplyr::mutate(Type = "Pre-Filter")
+
+      # prepare post-filter long data
+      post_long <- filteredData()$data %>%
+        dplyr::select(dplyr::all_of(input$columns)) %>%
+        tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
+        dplyr::filter(!is.na(Value)) %>%
+        dplyr::mutate(Type = "Post-Filter")
+
+      combined <- dplyr::bind_rows(pre_long, post_long)
+
+      if (nrow(combined) == 0) {
+        showNotification("No data available for plot.", type = "warning")
+        return(NULL)
+      }
+
+      grDevices::png(file, width = 1200, height = 800, res = 120)
+
+      if (input$plotType == "histogram") {
+        p <- ggplot(combined, aes(x = Value, fill = Type)) +
+          geom_histogram(bins = input$bins, alpha = 0.7, position = "dodge") +
+          facet_wrap(~ Column, scales = "free") +
+          scale_fill_manual(values = c("Pre-Filter" = "#DB3124", "Post-Filter" = "#4B74B2")) +
+          labs(title = "Pre vs Post Filter Data Distribution", x = "Value", y = "Frequency") +
+          theme_minimal(base_size = 14) +
+          theme(plot.title = element_text(hjust = 0.5))
+      } else {
+        p <- ggplot(combined, aes(y = Value, x = Type, fill = Type)) +
+          geom_boxplot(alpha = 0.7) +
+          facet_wrap(~ Column, scales = "free") +
+          scale_fill_manual(values = c("Pre-Filter" = "#DB3124", "Post-Filter" = "#4B74B2")) +
+          labs(title = "Pre vs Post Filter Data Distribution (Boxplot)", x = "Type", y = "Value") +
+          theme_minimal(base_size = 14) +
+          theme(
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_text(angle = 45, hjust = 1)
+          )
+      }
+
+      print(p)
+      grDevices::dev.off()
+    }
+  )
+  output$uploadUI <- renderUI({
+    lang <- input$language %||% "en"
+    wellPanel(
+      fileInput(
+        "file",
+        get_label("file_upload", lang),
+        accept = c(".csv", ".txt", ".tsv", ".xlsx", ".xls", ".rds")
+      ),
+      HTML(paste0("<span style='color: #444;'>", get_label("supported_types", lang), "</span>"))
+    )
+  })
 }
