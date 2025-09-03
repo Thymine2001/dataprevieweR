@@ -212,6 +212,22 @@ app_server <- function(input, output, session) {
     )
     df <- rbind(df, total_row)
 
+    # ---- 统计完整个体数（所有选定性状都非 NA）----
+    complete_cases <- filteredData()$data %>%
+      dplyr::select(dplyr::all_of(input$columns)) %>%
+      stats::complete.cases() %>%
+      sum()
+
+    complete_row <- data.frame(
+      Column = "Complete_Cases",
+      Original = NA_integer_,
+      Removed = NA_integer_,
+      Remaining = complete_cases,
+      RemovalRate = NA_real_
+    )
+
+    # 把这行加在 df 后面
+    df <- rbind(df, complete_row)
 
     DT::datatable(
       df,
@@ -222,6 +238,53 @@ app_server <- function(input, output, session) {
       DT::formatPercentage("RemovalRate", 2)
   })
 
+  # ---- QC 前后均值/SD 汇总 ----
+  qcSummary <- reactive({
+    req(selectedData(), filteredData(), input$columns)
+
+    pre_df <- selectedData()
+    post_df <- filteredData()$data[, input$columns, drop = FALSE]
+
+    # 转数值
+    for (col in input$columns) {
+      pre_df[[col]]  <- suppressWarnings(as.numeric(pre_df[[col]]))
+      post_df[[col]] <- suppressWarnings(as.numeric(post_df[[col]]))
+    }
+
+    # 逐列计算
+    res <- lapply(input$columns, function(col) {
+      pre_vals  <- pre_df[[col]]
+      post_vals <- post_df[[col]]
+
+      pre_mean  <- mean(pre_vals,  na.rm = TRUE)
+      pre_sd    <- stats::sd(pre_vals, na.rm = TRUE)
+      post_mean <- mean(post_vals, na.rm = TRUE)
+      post_sd   <- stats::sd(post_vals, na.rm = TRUE)
+
+      data.frame(
+        Column      = col,
+        Pre_Mean    = pre_mean,
+        Pre_SD      = pre_sd,
+        Post_Mean   = post_mean,
+        Post_SD     = post_sd,
+        Delta_Mean  = post_mean - pre_mean,
+        Delta_SD    = post_sd - pre_sd,
+        stringsAsFactors = FALSE
+      )
+    })
+
+    do.call(rbind, res)
+  })
+
+  output$qcSummaryTable <- DT::renderDataTable({
+    req(qcSummary())
+    DT::datatable(
+      qcSummary(),
+      rownames = FALSE,
+      options = list(pageLength = 10, autoWidth = TRUE)
+    ) |>
+      DT::formatRound(c("Pre_Mean","Pre_SD","Post_Mean","Post_SD","Delta_Mean","Delta_SD"), 3)
+  })
 
   output$comparisonPlots <- renderPlot({
     req(filteredData(), input$plotType)

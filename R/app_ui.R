@@ -188,7 +188,19 @@ app_ui <- function(request) {
             ),
             shiny::tabPanel(
               "QC Results",
+              tags$div(
+                "Summary of Removed Records per Column",
+                style = "text-align:center; font-weight:bold; font-family:'Times New Roman', Times, serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
+              ),
               DT::dataTableOutput("filterStats"),
+
+              br(),
+
+              tags$div(
+                "Comparison of Means and Standard Deviations (Pre vs Post QC)",
+                style = "text-align:center; font-weight:bold; font-family:'Times New Roman', Times, serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
+              ),
+              DT::DTOutput("qcSummaryTable"),
               shiny::plotOutput("comparisonPlots", height = "600px"),
               br(),
               shiny::downloadButton("downloadComparisonPlot", "Download Comparison Plot (PNG)", class = "btn btn-success",
