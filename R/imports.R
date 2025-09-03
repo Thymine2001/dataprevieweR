@@ -12,4 +12,6 @@
 #' @importFrom ggplot2 ggplot aes geom_histogram geom_boxplot facet_wrap labs theme_minimal theme element_text scale_fill_manual
 #' @importFrom shinythemes shinytheme
 #' @importFrom stats sd
+#' @importFrom utils read.table
+#' @importFrom ggplot2 element_blank
 NULL

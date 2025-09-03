@@ -13,6 +13,7 @@ Imports:
     dplyr,
     DT,
     ggplot2,
+    utils,
     golem,
     magrittr,
     readr,

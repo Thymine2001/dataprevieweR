@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 #' Application server-side logic
 #'
 #' @param input,output,session Internal parameters for {shiny}.
@@ -7,11 +8,11 @@ plot_ready <- reactiveVal(FALSE)
 labels <- list(
   file_upload = list(
     en = "Upload Data File (csv, txt, xlsx, rds, etc.)",
-    zh = "上传数据文件（csv、txt、xlsx、rds 等）"
+    zh = "\u4e0a\u4f20\u6570\u636e\u6587\u4ef6\uff08csv\u3001txt\u3001xlsx\u3001rds \u7b49\uff09"
   ),
   supported_types = list(
     en = " Supported file types: <strong>.csv</strong>, <strong>.tsv</strong>, <strong>.txt</strong>, <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.rds</strong><br> <em>Note: First row must contain column headers.</em>",
-    zh = " 支持的文件类型：<strong>.csv</strong>、<strong>.tsv</strong>、<strong>.txt</strong>、<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.rds</strong><br> <em>注意：第一行必须包含列名（header）。</em>"
+    zh = " \u652f\u6301\u7684\u6587\u4ef6\u7c7b\u578b\uff1a<strong>.csv</strong>\u3001<strong>.tsv</strong>\u3001<strong>.txt</strong>\u3001<strong>.xlsx</strong>\u3001<strong>.xls</strong>\u3001<strong>.rds</strong><br> <em>\u6ce8\u610f\uff1a\u7b2c\u4e00\u884c\u5fc5\u987b\u5305\u542b\u5217\u540d\uff08header\uff09\u3002</em>"
   )
 )
 app_server <- function(input, output, session) {
@@ -35,7 +36,7 @@ app_server <- function(input, output, session) {
 
       if (is.null(res)) {
         showNotification(
-          HTML(paste0("🚫 <strong>Unsupported file type:</strong> <code>", ext, "</code>")),
+          HTML(paste0("\u1f6ab <strong>Unsupported file type:</strong> <code>", ext, "</code>")),
           type = "error"
         )
         return(NULL)
@@ -44,7 +45,7 @@ app_server <- function(input, output, session) {
       }
     }, error = function(e) {
       showNotification(
-        HTML("⚠️ <strong>Error reading file.</strong> Please check the file format."),
+        HTML("\u26a0\ufe0f <strong>Error reading file.</strong> Please check the file format."),
         type = "error"
       )
       return(NULL)
@@ -104,13 +105,13 @@ app_server <- function(input, output, session) {
         theme_minimal(base_size = 14) +
         theme(
           plot.title = ggplot2::element_text(hjust = 0.5),
-          axis.text.x = ggplot2::element_blank(),  # 没必要显示 x 轴（因为只有一个 box）
+          axis.text.x = ggplot2::element_blank(),  # \u6ca1\u5fc5\u8981\u663e\u793a x \u8f74\uff08\u56e0\u4e3a\u53ea\u6709\u4e00\u4e2a box\uff09
           axis.ticks.x = ggplot2::element_blank()
         )
     }
   })
 
-  # 应用筛选并统计
+  # \u5e94\u7528\u7b5b\u9009\u5e76\u7edf\u8ba1
   filteredData <- eventReactive(input$applyFilter, {
     req(input$columns, data())
 
@@ -294,7 +295,7 @@ app_server <- function(input, output, session) {
         return(NULL)
       }
 
-      # 使用 png 设备保存图像
+      # \u4f7f\u7528 png \u8bbe\u5907\u4fdd\u5b58\u56fe\u50cf
       grDevices::png(file, width = 1200, height = 800, res = 120)
 
       if (input$plotType == "histogram") {
