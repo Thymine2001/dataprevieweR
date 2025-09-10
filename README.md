@@ -11,11 +11,13 @@ It allows you to load tabular datasets, explore their structure, filter observat
 
 
 ## ✨ Features
-- 📂 **Data preview** – Upload or read a local CSV file and instantly view the table  
+- 📂 **Data preview** – Upload or read a local csv, txt, xlsx, tsv etal file and instantly view the table  
 - 🔍 **Filtering tools** – Apply thresholds or mean ± SD criteria to filter records  
 - 📊 **Visualization** – Histogram and boxplot options for quick exploration  
 - ⚙️ **Interactive workflow** – Adjust QC parameters and see results immediately  
 - 💡 **Extensible** – Built with golem, easy to extend with new modules  
+## 🌐 Online Version
+Try it now ！！！: [https://vb6clt-huangyi-tang.shinyapps.io/datapreviewer/](https://vb6clt-huangyi-tang.shinyapps.io/datapreviewer/)
 
 ---
 
