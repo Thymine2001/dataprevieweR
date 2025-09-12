@@ -35,8 +35,9 @@ app_server <- function(input, output, session) {
       )
 
       if (is.null(res)) {
+        lang <- current_lang()
         showNotification(
-          HTML(paste0("\u1f6ab <strong>Unsupported file type:</strong> <code>", ext, "</code>")),
+          HTML(paste0("\u1f6ab <strong>", get_label("unsupported_file", lang), "</strong> <code>", ext, "</code>")),
           type = "error"
         )
         return(NULL)
@@ -44,8 +45,9 @@ app_server <- function(input, output, session) {
         return(res)
       }
     }, error = function(e) {
+      lang <- current_lang()
       showNotification(
-        HTML("\u26a0\ufe0f <strong>Error reading file.</strong> Please check the file format."),
+        HTML(paste0("\u26a0\ufe0f <strong>", get_label("file_error", lang), "</strong>")),
         type = "error"
       )
       return(NULL)
@@ -56,14 +58,341 @@ app_server <- function(input, output, session) {
   observe({
     req(data())
     updateSelectInput(session, "columns", choices = names(data()))
+    
+    # Identify potential categorical variables
+    df <- data()
+    categorical_candidates <- names(df)[sapply(df, function(x) {
+      is.character(x) || is.factor(x) || 
+      (is.numeric(x) && length(unique(x)) <= 20 && length(unique(x)) < nrow(df) * 0.5)
+    })]
+    updateSelectInput(session, "categoricalColumns", choices = categorical_candidates)
+  })
+
+  # Get current language
+  current_lang <- reactive({
+    input$language %||% "en"
+  })
+
+  # App title
+  output$appTitle <- renderText({
+    get_label("app_title", current_lang())
+  })
+
+  # File upload UI
+  output$fileUploadUI <- renderUI({
+    lang <- current_lang()
+    shiny::div(
+      shiny::fileInput(
+        "file",
+        get_label("file_upload", lang),
+        accept = c(".csv", ".txt", ".tsv", ".xlsx", ".xls", ".rds")
+      ),
+      shiny::HTML(paste0("<span style='color: #444;'>", get_label("supported_types", lang), "</span>"))
+    )
+  })
+
+  # Column selection UI
+  output$columnSelectionUI <- renderUI({
+    lang <- current_lang()
+    shiny::selectInput(
+      "columns",
+      shiny::HTML(paste0("&#x1F5C2;&#xFE0F; ", get_label("select_columns", lang))),
+      choices = NULL, multiple = TRUE
+    )
+  })
+
+  # Categorical filter title
+  output$categoricalFilterTitle <- renderText({
+    get_label("categorical_vars", current_lang())
+  })
+
+  # Categorical selection UI
+  output$categoricalSelectionUI <- renderUI({
+    lang <- current_lang()
+    shiny::selectInput(
+      "categoricalColumns",
+      shiny::HTML(paste0("&#x1F4CA; ", get_label("categorical_vars", lang))),
+      choices = NULL, multiple = TRUE
+    )
+  })
+
+  # Plot type UI
+  output$plotTypeUI <- renderUI({
+    lang <- current_lang()
+    shiny::selectInput(
+      "plotType",
+      shiny::HTML(paste0("&#x1F4CA; ", get_label("plot_type", lang))),
+      choices = setNames(c("histogram", "boxplot"), 
+                        c(get_label("histogram", lang), get_label("boxplot", lang))),
+      selected = "histogram"
+    )
+  })
+
+  # Bins UI
+  output$binsUI <- renderUI({
+    lang <- current_lang()
+    shiny::conditionalPanel(
+      condition = "input.plotType == 'histogram'",
+      shiny::numericInput("bins", get_label("hist_bin", lang), value = 30, min = 1, step = 1)
+    )
+  })
+
+  # QC filter title
+  output$qcFilterTitle <- renderText({
+    get_label("qc_filter_options", current_lang())
+  })
+
+  # QC mode UI
+  output$qcModeUI <- renderUI({
+    lang <- current_lang()
+    shiny::radioButtons(
+      "qcMode", get_label("qc_mode", lang),
+      choices = setNames(c("uniform", "individual"), 
+                        c(get_label("uniform_qc", lang), get_label("individual_qc", lang))),
+      selected = "uniform"
+    )
+  })
+
+  # Uniform QC controls
+  output$uniformQCControls <- renderUI({
+    lang <- current_lang()
+    shiny::div(
+      shiny::radioButtons(
+        "filterType", get_label("filter_type", lang),
+        choices = setNames(c("threshold", "sd", "iqr"), 
+                          c(get_label("threshold_range", lang), 
+                            get_label("sd_multiplier", lang), 
+                            get_label("iqr_multiplier", lang)))
+      ),
+      shiny::conditionalPanel(
+        condition = "input.filterType == 'threshold'",
+        shiny::numericInput("minVal", get_label("min_threshold", lang), value = NA),
+        shiny::numericInput("maxVal", get_label("max_threshold", lang), value = NA)
+      ),
+      shiny::conditionalPanel(
+        condition = "input.filterType == 'sd'",
+        shiny::numericInput("sdMultiplier", get_label("sd_multiplier", lang), value = 2, min = 0.1, step = 0.1)
+      ),
+      shiny::conditionalPanel(
+        condition = "input.filterType == 'iqr'",
+        shiny::numericInput("iqrMultiplier", get_label("iqr_multiplier", lang), value = 1.5, min = 0.1, step = 0.1)
+      )
+    )
+  })
+
+  # Individual QC title
+  output$individualQCTitle <- renderText({
+    get_label("configure_qc", current_lang())
+  })
+
+  # Action buttons UI
+  output$actionButtonsUI <- renderUI({
+    lang <- current_lang()
+    shiny::div(
+      shiny::actionButton("applyFilter", get_label("apply_filter", lang), class = "btn btn-primary"),
+      shiny::downloadButton("downloadData", get_label("download_filtered", lang), class = "btn btn-success")
+    )
+  })
+
+  # Tab titles
+  output$dataPreviewTabTitle <- renderText({
+    get_label("data_preview", current_lang())
+  })
+
+  output$qcResultsTabTitle <- renderText({
+    get_label("qc_results", current_lang())
+  })
+
+  # QC Results content - 只在数据可用时显示
+  output$qcResultsContent <- renderUI({
+    lang <- current_lang()
+    
+    # 检查是否有过滤后的数据
+    if (is.null(filteredData()) || is.null(selectedData())) {
+      return(shiny::div(
+        style = "text-align: center; padding: 50px; color: #666;",
+        shiny::h4(get_label("no_data_comparison", lang))
+      ))
+    }
+    
+    shiny::div(
+      shiny::div(
+        get_label("removed_records", lang),
+        style = "text-align:center; font-weight:bold; font-family:'Times New Roman', 'SimSun', serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
+      ),
+      DT::dataTableOutput("filterStats"),
+      shiny::br(),
+      shiny::div(
+        get_label("comparison_means", lang),
+        style = "text-align:center; font-weight:bold; font-family:'Times New Roman', 'SimSun', serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
+      ),
+      DT::DTOutput("qcSummaryTable"),
+      shiny::plotOutput("comparisonPlots", height = "600px"),
+      shiny::br(),
+      shiny::downloadButton("downloadComparisonPlot", get_label("download_comparison", lang), class = "btn btn-success",
+                            style = "float: right;")
+    )
+  })
+
+  # Generate individual QC controls for each selected column
+  output$individualQCControls <- renderUI({
+    req(input$columns, input$qcMode == "individual")
+    
+    if (length(input$columns) == 0) {
+      return(shiny::div("Please select columns first."))
+    }
+    
+    controls <- list()
+    
+    for (i in seq_along(input$columns)) {
+      col_name <- input$columns[i]
+      
+      controls[[i]] <- shiny::div(
+        class = "well",
+        style = "margin-bottom: 10px; padding: 10px;",
+        shiny::h6(shiny::strong(paste("Trait:", col_name))),
+        
+        # Filter type selection for this trait
+        shiny::radioButtons(
+          inputId = paste0("filterType_", i),
+          label = "Filter Type",
+          choices = c(
+            "Threshold Range" = "threshold",
+            "Mean +/- Times Standard Deviation Multiplier" = "sd",
+            "IQR Multiplier" = "iqr"
+          ),
+          selected = "sd"
+        ),
+        
+        # Threshold inputs
+        shiny::conditionalPanel(
+          condition = paste0("input.filterType_", i, " == 'threshold'"),
+          shiny::div(
+            style = "display: inline-block; width: 48%; margin-right: 2%;",
+            shiny::numericInput(
+              inputId = paste0("minVal_", i),
+              label = "Min Threshold",
+              value = NA
+            )
+          ),
+          shiny::div(
+            style = "display: inline-block; width: 48%;",
+            shiny::numericInput(
+              inputId = paste0("maxVal_", i),
+              label = "Max Threshold",
+              value = NA
+            )
+          )
+        ),
+        
+        # SD multiplier input
+        shiny::conditionalPanel(
+          condition = paste0("input.filterType_", i, " == 'sd'"),
+          shiny::numericInput(
+            inputId = paste0("sdMultiplier_", i),
+            label = "SD Multiplier",
+            value = 2,
+            min = 0.1,
+            step = 0.1
+          )
+        ),
+        
+        # IQR multiplier input
+        shiny::conditionalPanel(
+          condition = paste0("input.filterType_", i, " == 'iqr'"),
+          shiny::numericInput(
+            inputId = paste0("iqrMultiplier_", i),
+            label = "IQR Multiplier",
+            value = 1.5,
+            min = 0.1,
+            step = 0.1
+          )
+        )
+      )
+    }
+    
+    return(controls)
+  })
+
+  # Generate categorical filter controls
+  output$categoricalFilters <- renderUI({
+    req(input$categoricalColumns, data())
+    
+    lang <- current_lang()
+    
+    if (length(input$categoricalColumns) == 0) {
+      return(shiny::div(get_label("no_categorical", lang)))
+    }
+    
+    filters <- list()
+    
+    for (i in seq_along(input$categoricalColumns)) {
+      col_name <- input$categoricalColumns[i]
+      unique_values <- sort(unique(data()[[col_name]]))
+      
+      filters[[i]] <- shiny::div(
+        class = "categorical-filter",
+        shiny::h6(paste(get_label("filter_by", lang), col_name)),
+        shiny::div(
+          class = "checkbox-group",
+          shiny::checkboxGroupInput(
+            inputId = paste0("catFilter_", i),
+            label = NULL,
+            choices = unique_values,
+            selected = unique_values,  # Default: select all
+            inline = TRUE,  # 改为横向排列以节省空间
+            width = "100%"
+          )
+        )
+      )
+    }
+    
+    return(filters)
   })
 
 
   selectedData <- reactive({
     req(input$columns, data())
-    data() %>% dplyr::select(dplyr::all_of(input$columns))
+    
+    df <- data()
+    
+    # Apply categorical filters if any are selected
+    if (!is.null(input$categoricalColumns) && length(input$categoricalColumns) > 0) {
+      for (i in seq_along(input$categoricalColumns)) {
+        col_name <- input$categoricalColumns[i]
+        selected_values <- input[[paste0("catFilter_", i)]]
+        
+        if (!is.null(selected_values) && length(selected_values) > 0) {
+          df <- df[df[[col_name]] %in% selected_values, ]
+        }
+      }
+    }
+    
+    # Select only the specified columns
+    df %>% dplyr::select(dplyr::all_of(input$columns))
   })
 
+
+  # Data summary information
+  output$dataSummaryUI <- renderUI({
+    req(selectedData(), data())
+    
+    lang <- current_lang()
+    original_rows <- nrow(data())
+    filtered_rows <- nrow(selectedData())
+    
+    summary_text <- paste0(
+      "<div style='background-color: #E8F4FD; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-family: Times New Roman, SimSun, serif;'>",
+      "<strong>", get_label("data_summary", lang), "</strong><br>",
+      get_label("original_dataset", lang), " ", original_rows, " ", get_label("rows", lang), "<br>",
+      get_label("after_filtering", lang), " ", filtered_rows, " ", get_label("rows", lang), "<br>",
+      get_label("filtered_out", lang), " ", original_rows - filtered_rows, " ", get_label("rows", lang), " (", 
+      round((original_rows - filtered_rows) / original_rows * 100, 1), "%)",
+      "</div>"
+    )
+    
+    shiny::HTML(summary_text)
+  })
 
   output$previewTable <- DT::renderDataTable({
     req(selectedData())
@@ -79,7 +408,8 @@ app_server <- function(input, output, session) {
       dplyr::filter(!is.na(Value))
     plot_ready(TRUE)
     if (nrow(df_long) == 0) {
-      showNotification("No numeric data available for plotting.", type = "warning")
+      lang <- current_lang()
+      showNotification(get_label("no_data_plot", lang), type = "warning")
       return(NULL)
 
     }
@@ -115,60 +445,130 @@ app_server <- function(input, output, session) {
   filteredData <- eventReactive(input$applyFilter, {
     req(input$columns, data())
 
-
     df <- data()
+    
+    # Apply categorical filters first
+    if (!is.null(input$categoricalColumns) && length(input$categoricalColumns) > 0) {
+      for (i in seq_along(input$categoricalColumns)) {
+        col_name <- input$categoricalColumns[i]
+        selected_values <- input[[paste0("catFilter_", i)]]
+        
+        if (!is.null(selected_values) && length(selected_values) > 0) {
+          df <- df[df[[col_name]] %in% selected_values, ]
+        }
+      }
+    }
+    
+    # Convert selected columns to numeric
     for (col in input$columns) {
       df[[col]] <- suppressWarnings(as.numeric(df[[col]]))
     }
 
     filter_stats <- list()
 
-    if (input$filterType == "threshold") {
-      min_val <- input$minVal
-      max_val <- input$maxVal
-      for (col in input$columns) {
-        original_count <- sum(!is.na(df[[col]]))
-        keep <- rep(TRUE, nrow(df))
-        if (!is.na(min_val)) keep <- keep & (df[[col]] >= min_val | is.na(df[[col]]))
-        if (!is.na(max_val)) keep <- keep & (df[[col]] <= max_val | is.na(df[[col]]))
+    if (input$qcMode == "uniform") {
+      # Original uniform filtering logic
+      if (input$filterType == "threshold") {
+        min_val <- input$minVal
+        max_val <- input$maxVal
+        criteria <- paste0("Threshold: [", 
+                           ifelse(is.na(min_val), "-∞", min_val), ", ", 
+                           ifelse(is.na(max_val), "∞", max_val), "]")
+        for (col in input$columns) {
+          original_count <- sum(!is.na(df[[col]]))
+          keep <- rep(TRUE, nrow(df))
+          if (!is.na(min_val)) keep <- keep & (df[[col]] >= min_val | is.na(df[[col]]))
+          if (!is.na(max_val)) keep <- keep & (df[[col]] <= max_val | is.na(df[[col]]))
 
-        df[[col]][!keep] <- NA
-        filtered_count <- sum(!is.na(df[[col]]))
-        filter_stats[[col]] <- list(
-          removed = original_count - filtered_count,
-          remaining = filtered_count
-        )
+          df[[col]][!keep] <- NA
+          filtered_count <- sum(!is.na(df[[col]]))
+          filter_stats[[col]] <- list(
+            removed = original_count - filtered_count,
+            remaining = filtered_count,
+            criteria = criteria
+          )
+        }
+
+      } else if (input$filterType == "sd") {
+        multiplier <- input$sdMultiplier
+        criteria <- paste0("Mean ± ", multiplier, " × SD")
+        for (col in input$columns) {
+          original_count <- sum(!is.na(df[[col]]))
+          col_mean <- mean(df[[col]], na.rm = TRUE)
+          col_sd <- sd(df[[col]], na.rm = TRUE)
+          lower <- col_mean - multiplier * col_sd
+          upper <- col_mean + multiplier * col_sd
+          df[[col]][!(df[[col]] >= lower & df[[col]] <= upper | is.na(df[[col]]))] <- NA
+          filtered_count <- sum(!is.na(df[[col]]))
+          filter_stats[[col]] <- list(
+            removed = original_count - filtered_count,
+            remaining = filtered_count,
+            criteria = criteria
+          )
+        }
+
+      } else if (input$filterType == "iqr") {
+        multiplier <- input$iqrMultiplier
+        criteria <- paste0("IQR × ", multiplier)
+        for (col in input$columns) {
+          original_count <- sum(!is.na(df[[col]]))
+          qs <- stats::quantile(df[[col]], probs = c(0.25, 0.75), na.rm = TRUE, names = FALSE)
+          iqr <- qs[2] - qs[1]
+          lower_bound <- qs[1] - multiplier * iqr
+          upper_bound <- qs[2] + multiplier * iqr
+          df[[col]][!(df[[col]] >= lower_bound & df[[col]] <= upper_bound | is.na(df[[col]]))] <- NA
+          filtered_count <- sum(!is.na(df[[col]]))
+          filter_stats[[col]] <- list(
+            removed = original_count - filtered_count,
+            remaining = filtered_count,
+            criteria = criteria
+          )
+        }
       }
-
-    } else if (input$filterType == "sd") {
-      multiplier <- input$sdMultiplier
-      for (col in input$columns) {
+    } else {
+      # Individual filtering logic
+      for (i in seq_along(input$columns)) {
+        col <- input$columns[i]
+        filter_type <- input[[paste0("filterType_", i)]]
+        
         original_count <- sum(!is.na(df[[col]]))
-        col_mean <- mean(df[[col]], na.rm = TRUE)
-        col_sd <- sd(df[[col]], na.rm = TRUE)
-        lower <- col_mean - multiplier * col_sd
-        upper <- col_mean + multiplier * col_sd
-        df[[col]][!(df[[col]] >= lower & df[[col]] <= upper | is.na(df[[col]]))] <- NA
+        criteria <- ""
+        
+        if (filter_type == "threshold") {
+          min_val <- input[[paste0("minVal_", i)]]
+          max_val <- input[[paste0("maxVal_", i)]]
+          criteria <- paste0("Threshold: [", 
+                             ifelse(is.na(min_val), "-∞", min_val), ", ", 
+                             ifelse(is.na(max_val), "∞", max_val), "]")
+          keep <- rep(TRUE, nrow(df))
+          if (!is.na(min_val)) keep <- keep & (df[[col]] >= min_val | is.na(df[[col]]))
+          if (!is.na(max_val)) keep <- keep & (df[[col]] <= max_val | is.na(df[[col]]))
+          df[[col]][!keep] <- NA
+          
+        } else if (filter_type == "sd") {
+          multiplier <- input[[paste0("sdMultiplier_", i)]]
+          criteria <- paste0("Mean ± ", multiplier, " × SD")
+          col_mean <- mean(df[[col]], na.rm = TRUE)
+          col_sd <- sd(df[[col]], na.rm = TRUE)
+          lower <- col_mean - multiplier * col_sd
+          upper <- col_mean + multiplier * col_sd
+          df[[col]][!(df[[col]] >= lower & df[[col]] <= upper | is.na(df[[col]]))] <- NA
+          
+        } else if (filter_type == "iqr") {
+          multiplier <- input[[paste0("iqrMultiplier_", i)]]
+          criteria <- paste0("IQR × ", multiplier)
+          qs <- stats::quantile(df[[col]], probs = c(0.25, 0.75), na.rm = TRUE, names = FALSE)
+          iqr <- qs[2] - qs[1]
+          lower_bound <- qs[1] - multiplier * iqr
+          upper_bound <- qs[2] + multiplier * iqr
+          df[[col]][!(df[[col]] >= lower_bound & df[[col]] <= upper_bound | is.na(df[[col]]))] <- NA
+        }
+        
         filtered_count <- sum(!is.na(df[[col]]))
         filter_stats[[col]] <- list(
           removed = original_count - filtered_count,
-          remaining = filtered_count
-        )
-      }
-
-    } else if (input$filterType == "iqr") {
-      multiplier <- input$iqrMultiplier
-      for (col in input$columns) {
-        original_count <- sum(!is.na(df[[col]]))
-        qs <- stats::quantile(df[[col]], probs = c(0.25, 0.75), na.rm = TRUE, names = FALSE)
-        iqr <- qs[2] - qs[1]
-        lower_bound <- qs[1] - multiplier * iqr
-        upper_bound <- qs[2] + multiplier * iqr
-        df[[col]][!(df[[col]] >= lower_bound & df[[col]] <= upper_bound | is.na(df[[col]]))] <- NA
-        filtered_count <- sum(!is.na(df[[col]]))
-        filter_stats[[col]] <- list(
-          removed = original_count - filtered_count,
-          remaining = filtered_count
+          remaining = filtered_count,
+          criteria = criteria
         )
       }
     }
@@ -185,7 +585,7 @@ app_server <- function(input, output, session) {
     if (length(stats) == 0) {
       return(DT::datatable(
         data.frame(Column = character(0), Original = integer(0),
-                   Removed = integer(0), Remaining = integer(0), RemovalRate = numeric(0)),
+                   Removed = integer(0), Remaining = integer(0), RemovalRate = numeric(0), QC_Criteria = character(0)),
         options = list(dom = 't')
       ))
     }
@@ -196,6 +596,7 @@ app_server <- function(input, output, session) {
       Original = sapply(stats, function(x) (x$removed %||% 0) + (x$remaining %||% 0)),
       Removed = sapply(stats, function(x) x$removed),
       Remaining = sapply(stats, function(x) x$remaining),
+      QC_Criteria = sapply(stats, function(x) x$criteria %||% ""),
       stringsAsFactors = FALSE
     )
     df$RemovalRate <- ifelse(df$Original > 0, df$Removed / df$Original, NA_real_)
@@ -206,6 +607,7 @@ app_server <- function(input, output, session) {
       Original = sum(df$Original, na.rm = TRUE),
       Removed = sum(df$Removed, na.rm = TRUE),
       Remaining = sum(df$Remaining, na.rm = TRUE),
+      QC_Criteria = "N/A",
       RemovalRate = ifelse(sum(df$Original, na.rm = TRUE) > 0,
                            sum(df$Removed, na.rm = TRUE) / sum(df$Original, na.rm = TRUE),
                            NA_real_)
@@ -223,6 +625,7 @@ app_server <- function(input, output, session) {
       Original = NA_integer_,
       Removed = NA_integer_,
       Remaining = complete_cases,
+      QC_Criteria = "N/A",
       RemovalRate = NA_real_
     )
 
@@ -303,7 +706,8 @@ app_server <- function(input, output, session) {
 
     combined <- dplyr::bind_rows(pre_long, post_long)
     if (nrow(combined) == 0) {
-      showNotification("No data available for comparison plots.", type = "warning")
+      lang <- current_lang()
+      showNotification(get_label("no_data_comparison", lang), type = "warning")
       return(NULL)
     }
 
@@ -338,9 +742,8 @@ app_server <- function(input, output, session) {
     }
   )
   observeEvent(input$applyFilter, {
-    updateTabsetPanel(session, inputId = "mainTabs", selected = "QC Results")
-  }
-  )
+    updateTabsetPanel(session, inputId = "mainTabs", selected = "qc_results")
+  })
   output$downloadPlot <- downloadHandler(
     filename = function() {
       paste0("pre_filter_plot_", Sys.Date(), ".png")
@@ -354,7 +757,8 @@ app_server <- function(input, output, session) {
         dplyr::filter(!is.na(Value))
 
       if (nrow(df_long) == 0) {
-        showNotification("No data available to download.", type = "warning")
+        lang <- current_lang()
+        showNotification(get_label("no_data_download", lang), type = "warning")
         return(NULL)
       }
 
@@ -387,7 +791,8 @@ app_server <- function(input, output, session) {
   )
   output$plotDownloadUI <- renderUI({
     if (plot_ready()) {
-      downloadButton("downloadPlot", "Download Plot (PNG)", class = "btn btn-success")
+      lang <- current_lang()
+      downloadButton("downloadPlot", get_label("download_plot", lang), class = "btn btn-success")
     }
   })
   output$downloadComparisonPlot <- downloadHandler(
@@ -414,7 +819,8 @@ app_server <- function(input, output, session) {
       combined <- dplyr::bind_rows(pre_long, post_long)
 
       if (nrow(combined) == 0) {
-        showNotification("No data available for plot.", type = "warning")
+        lang <- current_lang()
+        showNotification(get_label("no_data_download", lang), type = "warning")
         return(NULL)
       }
 

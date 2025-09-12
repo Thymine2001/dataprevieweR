@@ -3,7 +3,7 @@
 #' @param request Internal parameter for {shiny}. DO NOT REMOVE.
 #' @noRd
 app_ui <- function(request) {
-
+  options(shiny.maxRequestSize = 10 * 1024^3)
   shiny::tagList(
     # If you later need external resources, re-enable this:
     # golem_add_external_resources(),
@@ -24,7 +24,7 @@ app_ui <- function(request) {
             border-radius: 5px;
           }
           .title-panel h1 {
-            font-family: 'Roboto Slab', serif;
+            font-family: 'Times New Roman', 'SimSun', serif;
             font-size: 48px;
             font-weight: 700;
             color: #000000;
@@ -35,6 +35,17 @@ app_ui <- function(request) {
           body {
             background-color: #FFFFFF; /* white background */
             color: #000000;            /* black text */
+            font-family: 'Times New Roman', 'SimSun', serif;
+          }
+          
+          /* Chinese text styling */
+          .chinese-text {
+            font-family: 'SimSun', 'FangSong', serif;
+          }
+          
+          /* English text styling */
+          .english-text {
+            font-family: 'Times New Roman', serif;
           }
 
           /* Sidebar */
@@ -94,12 +105,66 @@ app_ui <- function(request) {
             background-color: #FFFFFF;
             color: #000000;
           }
+
+          /* Individual QC controls */
+          #individualQC .well {
+            background-color: #F0F8FF;
+            border: 1px solid #B0C4DE;
+            border-radius: 5px;
+            margin-bottom: 10px;
+          }
+          #individualQC h6 {
+            color: #2E8B57;
+            margin-bottom: 10px;
+          }
+          #individualQC .radio-group {
+            margin-bottom: 10px;
+          }
+          #individualQC .form-group {
+            margin-bottom: 8px;
+          }
+
+          /* Categorical filter controls */
+          .categorical-filter {
+            background-color: #FFF8DC;
+            border: 1px solid #DAA520;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            padding: 6px;
+          }
+          .categorical-filter h6 {
+            color: #8B4513;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 12px;
+          }
+          .categorical-filter .checkbox-group {
+            max-height: 80px;
+            overflow-y: auto;
+            border: 1px solid #DDD;
+            padding: 3px;
+            background-color: #FAFAFA;
+            font-size: 11px;
+          }
+          .categorical-filter .checkbox-group .form-check {
+            display: inline-block;
+            margin-right: 8px;
+            margin-bottom: 2px;
+          }
+          .categorical-filter .checkbox-group .form-check-input {
+            margin-right: 3px;
+            transform: scale(0.8);
+          }
+          .categorical-filter .checkbox-group .form-check-label {
+            font-size: 10px;
+            margin-bottom: 0;
+          }
         "))
       ),
 
       # -------------------- Title --------------------
       shiny::div(class = "title-panel",
-                 shiny::h1("datapreviewR: A data review and QC tool")
+                 shiny::h1(shiny::textOutput("appTitle"))
       ),
 
       # -------------------- Layout --------------------
@@ -107,72 +172,50 @@ app_ui <- function(request) {
 
         # ---- LEFT: controls ----
         shiny::sidebarPanel(
-         ## div(
-          ##  style = "text-align: center;",
-          ##  radioButtons(
-          ##    "language", "Language / 语言",
-          ##    choices = c("English" = "en", "中文" = "zh"),
-          ##    selected = "en",
-          ##    inline = TRUE
-          #  )
-          #),
+          shiny::div(
+            style = "text-align: center; margin-bottom: 15px;",
+            shiny::radioButtons(
+              "language", "Language / 语言",
+              choices = c("English" = "en", "中文" = "zh"),
+              selected = "en",
+              inline = TRUE
+            )
+          ),
           shiny::wellPanel(
-            shiny::fileInput(
-              "file",
-              "Upload Data File (csv, txt, xlsx, rds, etc.)",
-              accept = c(".csv", ".txt", ".tsv", ".xlsx", ".xls", ".rds")
-            ),
-            shiny::HTML("<span style='color: #444;'> Supported file types: <strong>.csv</strong>, <strong>.tsv</strong>, <strong>.txt</strong>, <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.rds</strong><br>
- <em>Note: First row must be column headers.</em></span>")
+            shiny::uiOutput("fileUploadUI")
           ),
 
-          shiny::selectInput(
-            "columns",
-            shiny::HTML("&#x1F5C2;&#xFE0F; Select Column Names (Multi-select supported)"),
-            choices = NULL, multiple = TRUE
-          ),
+          shiny::uiOutput("columnSelectionUI"),
 
-          shiny::selectInput(
-            "plotType",
-            shiny::HTML("&#x1F4CA; Plot Type"),
-            choices = c("Histogram" = "histogram", "Boxplot" = "boxplot"),
-            selected = "histogram"
-          ),
+          shiny::h4(shiny::textOutput("categoricalFilterTitle")),
+          shiny::uiOutput("categoricalSelectionUI"),
+          shiny::uiOutput("categoricalFilters"),
 
+          shiny::uiOutput("plotTypeUI"),
+
+          shiny::uiOutput("binsUI"),
+
+          shiny::h4(shiny::textOutput("qcFilterTitle")),
+
+          shiny::uiOutput("qcModeUI"),
+
+          # Uniform QC mode (original behavior)
           shiny::conditionalPanel(
-            condition = "input.plotType == 'histogram'",
-            shiny::numericInput("bins", "Histogram Bin Size", value = 30, min = 1, step = 1)
+            condition = "input.qcMode == 'uniform'",
+            shiny::uiOutput("uniformQCControls")
           ),
 
-          shiny::h4("QC Filter Options"),
-
-          shiny::radioButtons(
-            "filterType", "Filter Type",
-            choices = c(
-              "Threshold Range" = "threshold",
-              "Mean +/- Times Standard Deviation Multiplier" = "sd",
-              "IQR Multiplier" = "iqr"
+          # Individual QC mode (new feature)
+          shiny::conditionalPanel(
+            condition = "input.qcMode == 'individual'",
+            shiny::div(
+              id = "individualQC",
+              shiny::h5(shiny::textOutput("individualQCTitle")),
+              shiny::uiOutput("individualQCControls")
             )
           ),
 
-          shiny::conditionalPanel(
-            condition = "input.filterType == 'threshold'",
-            shiny::numericInput("minVal", "Minimum Threshold", value = NA),
-            shiny::numericInput("maxVal", "Maximum Threshold", value = NA)
-          ),
-
-          shiny::conditionalPanel(
-            condition = "input.filterType == 'sd'",
-            shiny::numericInput("sdMultiplier", "Standard Deviation Multiplier", value = 2, min = 0.1, step = 0.1)
-          ),
-
-          shiny::conditionalPanel(
-            condition = "input.filterType == 'iqr'",
-            shiny::numericInput("iqrMultiplier", "IQR Multiplier", value = 1.5, min = 0.1, step = 0.1)
-          ),
-
-          shiny::actionButton("applyFilter", "Apply Filter", class = "btn btn-primary"),
-          shiny::downloadButton("downloadData", "Download Filtered Data", class = "btn btn-success")
+          shiny::uiOutput("actionButtonsUI")
         ),
 
         # ---- RIGHT: outputs ----
@@ -180,31 +223,18 @@ app_ui <- function(request) {
           shiny::tabsetPanel(
             id = "mainTabs",
             shiny::tabPanel(
-              "Data Preview",
+              shiny::textOutput("dataPreviewTabTitle"),
+              value = "data_preview",
               br(), br(),
+              shiny::uiOutput("dataSummaryUI"),
               shiny::uiOutput("plotDownloadUI"),
               shiny::plotOutput("preDistPlot"),
               DT::dataTableOutput("previewTable")
             ),
             shiny::tabPanel(
-              "QC Results",
-              tags$div(
-                "Summary of Removed Records per Column",
-                style = "text-align:center; font-weight:bold; font-family:'Times New Roman', Times, serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
-              ),
-              DT::dataTableOutput("filterStats"),
-
-              br(),
-
-              tags$div(
-                "Comparison of Means and Standard Deviations (Pre vs Post QC)",
-                style = "text-align:center; font-weight:bold; font-family:'Times New Roman', Times, serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
-              ),
-              DT::DTOutput("qcSummaryTable"),
-              shiny::plotOutput("comparisonPlots", height = "600px"),
-              br(),
-              shiny::downloadButton("downloadComparisonPlot", "Download Comparison Plot (PNG)", class = "btn btn-success",
-                                    style = "float: right;")
+              shiny::textOutput("qcResultsTabTitle"),
+              value = "qc_results",
+              shiny::uiOutput("qcResultsContent")
             )
           )
         )
