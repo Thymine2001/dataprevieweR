@@ -122,7 +122,7 @@ app_server <- function(input, output, session) {
     shiny::selectInput(
       "plotType",
       shiny::HTML(paste0("&#x1F4CA; ", get_label("plot_type", lang))),
-      choices = setNames(c("histogram", "boxplot"), 
+      choices = stats::setNames(c("histogram", "boxplot"), 
                         c(get_label("histogram", lang), get_label("boxplot", lang))),
       selected = "histogram"
     )
@@ -147,7 +147,7 @@ app_server <- function(input, output, session) {
     lang <- current_lang()
     shiny::radioButtons(
       "qcMode", get_label("qc_mode", lang),
-      choices = setNames(c("uniform", "individual"), 
+      choices = stats::setNames(c("uniform", "individual"), 
                         c(get_label("uniform_qc", lang), get_label("individual_qc", lang))),
       selected = "uniform"
     )
@@ -159,7 +159,7 @@ app_server <- function(input, output, session) {
     shiny::div(
       shiny::radioButtons(
         "filterType", get_label("filter_type", lang),
-        choices = setNames(c("threshold", "sd", "iqr"), 
+        choices = stats::setNames(c("threshold", "sd", "iqr"), 
                           c(get_label("threshold_range", lang), 
                             get_label("sd_multiplier", lang), 
                             get_label("iqr_multiplier", lang)))
@@ -203,11 +203,11 @@ app_server <- function(input, output, session) {
     get_label("qc_results", current_lang())
   })
 
-  # QC Results content - 只在数据可用时显示
+  # QC Results content - only show when data is available
   output$qcResultsContent <- renderUI({
     lang <- current_lang()
     
-    # 检查是否有过滤后的数据
+    # Check if filtered data is available
     if (is.null(filteredData()) || is.null(selectedData())) {
       return(shiny::div(
         style = "text-align: center; padding: 50px; color: #666;",
@@ -340,7 +340,7 @@ app_server <- function(input, output, session) {
             label = NULL,
             choices = unique_values,
             selected = unique_values,  # Default: select all
-            inline = TRUE,  # 改为横向排列以节省空间
+             inline = TRUE,  # Use horizontal layout to save space
             width = "100%"
           )
         )
@@ -472,8 +472,8 @@ app_server <- function(input, output, session) {
         min_val <- input$minVal
         max_val <- input$maxVal
         criteria <- paste0("Threshold: [", 
-                           ifelse(is.na(min_val), "-∞", min_val), ", ", 
-                           ifelse(is.na(max_val), "∞", max_val), "]")
+                            ifelse(is.na(min_val), "-Inf", min_val), ", ",
+                            ifelse(is.na(max_val), "Inf", max_val), "]")
         for (col in input$columns) {
           original_count <- sum(!is.na(df[[col]]))
           keep <- rep(TRUE, nrow(df))
@@ -491,7 +491,7 @@ app_server <- function(input, output, session) {
 
       } else if (input$filterType == "sd") {
         multiplier <- input$sdMultiplier
-        criteria <- paste0("Mean ± ", multiplier, " × SD")
+           criteria <- paste0("Mean +/- ", multiplier, " * SD")
         for (col in input$columns) {
           original_count <- sum(!is.na(df[[col]]))
           col_mean <- mean(df[[col]], na.rm = TRUE)
@@ -509,7 +509,7 @@ app_server <- function(input, output, session) {
 
       } else if (input$filterType == "iqr") {
         multiplier <- input$iqrMultiplier
-        criteria <- paste0("IQR × ", multiplier)
+           criteria <- paste0("IQR * ", multiplier)
         for (col in input$columns) {
           original_count <- sum(!is.na(df[[col]]))
           qs <- stats::quantile(df[[col]], probs = c(0.25, 0.75), na.rm = TRUE, names = FALSE)
@@ -538,8 +538,8 @@ app_server <- function(input, output, session) {
           min_val <- input[[paste0("minVal_", i)]]
           max_val <- input[[paste0("maxVal_", i)]]
           criteria <- paste0("Threshold: [", 
-                             ifelse(is.na(min_val), "-∞", min_val), ", ", 
-                             ifelse(is.na(max_val), "∞", max_val), "]")
+                            ifelse(is.na(min_val), "-Inf", min_val), ", ",
+                            ifelse(is.na(max_val), "Inf", max_val), "]")
           keep <- rep(TRUE, nrow(df))
           if (!is.na(min_val)) keep <- keep & (df[[col]] >= min_val | is.na(df[[col]]))
           if (!is.na(max_val)) keep <- keep & (df[[col]] <= max_val | is.na(df[[col]]))
@@ -547,7 +547,7 @@ app_server <- function(input, output, session) {
           
         } else if (filter_type == "sd") {
           multiplier <- input[[paste0("sdMultiplier_", i)]]
-          criteria <- paste0("Mean ± ", multiplier, " × SD")
+          criteria <- paste0("Mean +/- ", multiplier, " * SD")
           col_mean <- mean(df[[col]], na.rm = TRUE)
           col_sd <- sd(df[[col]], na.rm = TRUE)
           lower <- col_mean - multiplier * col_sd
@@ -556,7 +556,7 @@ app_server <- function(input, output, session) {
           
         } else if (filter_type == "iqr") {
           multiplier <- input[[paste0("iqrMultiplier_", i)]]
-          criteria <- paste0("IQR × ", multiplier)
+          criteria <- paste0("IQR * ", multiplier)
           qs <- stats::quantile(df[[col]], probs = c(0.25, 0.75), na.rm = TRUE, names = FALSE)
           iqr <- qs[2] - qs[1]
           lower_bound <- qs[1] - multiplier * iqr
@@ -614,7 +614,7 @@ app_server <- function(input, output, session) {
     )
     df <- rbind(df, total_row)
 
-    # ---- 统计完整个体数（所有选定性状都非 NA）----
+    # ---- Count complete individuals (all selected traits are non-NA) ----
     complete_cases <- filteredData()$data %>%
       dplyr::select(dplyr::all_of(input$columns)) %>%
       stats::complete.cases() %>%
@@ -629,7 +629,7 @@ app_server <- function(input, output, session) {
       RemovalRate = NA_real_
     )
 
-    # 把这行加在 df 后面
+    # Add this row after df
     df <- rbind(df, complete_row)
 
     DT::datatable(
@@ -641,20 +641,20 @@ app_server <- function(input, output, session) {
       DT::formatPercentage("RemovalRate", 2)
   })
 
-  # ---- QC 前后均值/SD 汇总 ----
+  # ---- QC Pre/Post Mean/SD Summary ----
   qcSummary <- reactive({
     req(selectedData(), filteredData(), input$columns)
 
     pre_df <- selectedData()
     post_df <- filteredData()$data[, input$columns, drop = FALSE]
 
-    # 转数值
+    # Convert to numeric
     for (col in input$columns) {
       pre_df[[col]]  <- suppressWarnings(as.numeric(pre_df[[col]]))
       post_df[[col]] <- suppressWarnings(as.numeric(post_df[[col]]))
     }
 
-    # 逐列计算
+    # Calculate for each column
     res <- lapply(input$columns, function(col) {
       pre_vals  <- pre_df[[col]]
       post_vals <- post_df[[col]]
@@ -780,8 +780,8 @@ app_server <- function(input, output, session) {
           theme_minimal(base_size = 14) +
           theme(
             plot.title = element_text(hjust = 0.5),
-            axis.text.x = element_blank(),
-            axis.ticks.x = element_blank()
+            axis.text.x = ggplot2::element_blank(),
+            axis.ticks.x = ggplot2::element_blank()
           )
       }
 

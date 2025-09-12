@@ -6,7 +6,7 @@
 #' @param uiPattern URL pattern for the UI
 #' @param ... Additional options passed to `golem_opts`
 #' @export
-run_app <- function(...) {
+run_app <- function(..., onStart = NULL, options = list(), enableBookmarking = NULL, uiPattern = "/") {
   shinyApp(
     ui = app_ui,
     server = app_server

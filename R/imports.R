@@ -13,7 +13,7 @@
 #' @importFrom shinythemes shinytheme
 #' @importFrom stats sd
 #' @importFrom utils read.table
-#' @importFrom shinythemes
+#' @importFrom shinythemes shinytheme
 NULL
 # R/imports.R
 library(shiny)

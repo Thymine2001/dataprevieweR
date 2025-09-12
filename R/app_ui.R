@@ -175,8 +175,8 @@ app_ui <- function(request) {
           shiny::div(
             style = "text-align: center; margin-bottom: 15px;",
             shiny::radioButtons(
-              "language", "Language / 语言",
-              choices = c("English" = "en", "中文" = "zh"),
+               "language", "Language / \u8bed\u8a00",
+              choices = c("English" = "en", "\u4e2d\u6587" = "zh"),
               selected = "en",
               inline = TRUE
             )
@@ -248,7 +248,7 @@ app_ui <- function(request) {
 golem_add_external_resources <- function() {
   www_path <- system.file("app/www", package = "dataprevieweR")
 
-  # 正确的 Shiny 函数名（驼峰）
+  # Correct Shiny function names (camelCase)
   shiny::addResourcePath("www", www_path)
 
   shiny::tags$head(

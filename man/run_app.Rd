@@ -5,14 +5,16 @@
 \title{Run the Shiny Application}
 \usage{
 run_app(
+  ...,
   onStart = NULL,
   options = list(),
   enableBookmarking = NULL,
-  uiPattern = "/",
-  ...
+  uiPattern = "/"
 )
 }
 \arguments{
+\item{...}{Additional options passed to `golem_opts`}
+
 \item{onStart}{Startup function}
 
 \item{options}{Options list passed to shinyApp}
@@ -20,8 +22,6 @@ run_app(
 \item{enableBookmarking}{Bookmarking mode}
 
 \item{uiPattern}{URL pattern for the UI}
-
-\item{...}{Additional options passed to `golem_opts`}
 }
 \description{
 Run the Shiny Application
