@@ -175,8 +175,8 @@ app_ui <- function(request) {
           shiny::div(
             style = "text-align: center; margin-bottom: 15px;",
             shiny::radioButtons(
-               "language", "Language / \u8bed\u8a00",
-              choices = c("English" = "en", "\u4e2d\u6587" = "zh"),
+               "language", "Language / \u8bed\u8a00 / Idioma",
+              choices = c("English" = "en", "\u4e2d\u6587" = "zh", "Portugu\u00eas" = "pt"),
               selected = "en",
               inline = TRUE
             )
