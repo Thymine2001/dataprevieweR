@@ -10,6 +10,22 @@ app_ui <- function(request) {
 
     shiny::fluidPage(
       theme = shinythemes::shinytheme("flatly"),
+      shinyjs::useShinyjs(),
+      
+      # JavaScript for CSV download
+      shiny::tags$script("
+        Shiny.addCustomMessageHandler('downloadCSV', function(message) {
+          var blob = new Blob([message.content], { type: 'text/csv;charset=utf-8;' });
+          var link = document.createElement('a');
+          var url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', message.filename);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      "),
 
       # -------------------- Head: CSS --------------------
       shiny::tags$head(
@@ -238,7 +254,10 @@ app_ui <- function(request) {
             )
           )
         )
-      )
+      ),
+
+      # ---- Hidden Download Link ----
+      shiny::uiOutput("hiddenDownloadLink")
     )
   )
 }

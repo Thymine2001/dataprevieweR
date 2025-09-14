@@ -64,6 +64,14 @@ get_label <- function(key, lang = "en") {
     filter_by = list(en = "Filter by:", zh = "\u6309\u4ee5\u4e0b\u6761\u4ef6\u8fc7\u6ee4\uff1a", pt = "Filtrar por:"),
     no_categorical = list(en = "No categorical variables selected.", zh = "\u672a\u9009\u62e9\u5206\u7c7b\u53d8\u91cf\u3002", pt = "Nenhuma vari\u00e1vel categ\u00f3rica selecionada."),
     
+    # Missing value modal
+    missing_value_modal_title = list(en = "Download Options", zh = "\u4e0b\u8f7d\u9009\u9879", pt = "Op\u00e7\u00f5es de Download"),
+    missing_value_modal_text = list(en = "Choose the format for missing values in the downloaded file:", zh = "\u9009\u62e9\u4e0b\u8f7d\u6587\u4ef6\u4e2d\u7f3a\u5931\u503c\u7684\u683c\u5f0f\uff1a", pt = "Escolha o formato para valores ausentes no arquivo baixado:"),
+    missing_value_format_label = list(en = "Define Missing Values:", zh = "\u5b9a\u4e49\u7f3a\u5931\u503c\uff1a", pt = "Definir Valores Ausentes:"),
+    missing_value_format_help = list(en = "Select which values should be treated as missing values when reading the data (multiple selection supported)", zh = "\u9009\u62e9\u5728\u8bfb\u53d6\u6570\u636e\u65f6\u5e94\u8be5\u88ab\u5f53\u4f5c\u7f3a\u5931\u503c\u5904\u7406\u7684\u503c\uff08\u652f\u6301\u591a\u9009\uff09", pt = "Selecione quais valores devem ser tratados como valores ausentes ao ler os dados (suporte a m\u00faltipla sele\u00e7\u00e3o)"),
+    confirm_download_text = list(en = "Download", zh = "\u4e0b\u8f7d", pt = "Baixar"),
+    cancel_download_text = list(en = "Cancel", zh = "\u53d6\u6d88", pt = "Cancelar"),
+
     # Error messages
     no_data_plot = list(en = "No numeric data available for plotting.", zh = "\u6ca1\u6709\u53ef\u7528\u4e8e\u7ed8\u56fe\u7684\u6570\u636e\u3002", pt = "Nenhum dado num\u00e9rico dispon\u00edvel para plotagem."),
     no_data_comparison = list(en = "No data available for comparison plots.", zh = "\u6ca1\u6709\u53ef\u7528\u4e8e\u5bf9\u6bd4\u56fe\u7684\u6570\u636e\u3002", pt = "Nenhum dado dispon\u00edvel para gr\u00e1ficos de compara\u00e7\u00e3o."),

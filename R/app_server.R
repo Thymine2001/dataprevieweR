@@ -15,6 +15,56 @@ labels <- list(
     zh = " \u652f\u6301\u7684\u6587\u4ef6\u7c7b\u578b\uff1a<strong>.csv</strong>\u3001<strong>.tsv</strong>\u3001<strong>.txt</strong>\u3001<strong>.xlsx</strong>\u3001<strong>.xls</strong>\u3001<strong>.rds</strong><br> <em>\u6ce8\u610f\uff1a\u7b2c\u4e00\u884c\u5fc5\u987b\u5305\u542b\u5217\u540d\uff08header\uff09\u3002</em>"
   )
 )
+
+# Function to convert specified values to NA
+convert_values_to_na <- function(data, missing_values) {
+  if (!is.data.frame(data)) {
+    return(data)
+  }
+  
+  # Create a copy to avoid modifying original data
+  result <- data
+  
+  for (i in seq_along(result)) {
+    col <- result[[i]]
+    
+    # Handle different data types
+    if (is.numeric(col)) {
+      # For numeric columns, convert specified values to NA
+      for (val in missing_values) {
+        if (val == "NA") {
+          # NA is already handled by R
+          next
+        } else if (val == "0") {
+          result[[i]][col == 0] <- NA
+        } else if (val == "-999") {
+          result[[i]][col == -999] <- NA
+        } else {
+          # Try to convert to numeric and compare
+          num_val <- tryCatch(as.numeric(val), error = function(e) NA)
+          if (!is.na(num_val)) {
+            result[[i]][col == num_val] <- NA
+          }
+        }
+      }
+    } else if (is.character(col)) {
+      # For character columns, convert specified values to NA
+      for (val in missing_values) {
+        if (val == "NA") {
+          # NA is already handled by R
+          next
+        } else if (val == "") {
+          result[[i]][col == ""] <- NA
+        } else {
+          result[[i]][col == val] <- NA
+        }
+      }
+    }
+  }
+  
+  return(result)
+}
+
 app_server <- function(input, output, session) {
 
   data <- reactive({
@@ -42,6 +92,11 @@ app_server <- function(input, output, session) {
         )
         return(NULL)
       } else {
+        # Convert user-defined missing values to NA
+        missing_values <- input$missingValueOptions %||% "NA"
+        if (!is.null(missing_values) && length(missing_values) > 0) {
+          res <- convert_values_to_na(res, missing_values)
+        }
         return(res)
       }
     }, error = function(e) {
@@ -58,11 +113,11 @@ app_server <- function(input, output, session) {
   observe({
     req(data())
     updateSelectInput(session, "columns", choices = names(data()))
-    
+
     # Identify potential categorical variables
     df <- data()
     categorical_candidates <- names(df)[sapply(df, function(x) {
-      is.character(x) || is.factor(x) || 
+      is.character(x) || is.factor(x) ||
       (is.numeric(x) && length(unique(x)) <= 20 && length(unique(x)) < nrow(df) * 0.5)
     })]
     updateSelectInput(session, "categoricalColumns", choices = categorical_candidates)
@@ -87,7 +142,18 @@ app_server <- function(input, output, session) {
         get_label("file_upload", lang),
         accept = c(".csv", ".txt", ".tsv", ".xlsx", ".xls", ".rds")
       ),
-      shiny::HTML(paste0("<span style='color: #444;'>", get_label("supported_types", lang), "</span>"))
+      shiny::HTML(paste0("<span style='color: #444;'>", get_label("supported_types", lang), "</span>")),
+      br(),
+      shiny::div(
+        style = "margin-top: 10px; padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px;",
+        shiny::h6(shiny::textOutput("missingValueFormatLabel")),
+        shiny::checkboxGroupInput("missingValueOptions", 
+                                 shiny::textOutput("missingValueFormatLabel"), 
+                                 choices = list("NA" = "NA", "0" = "0", "-999" = "-999", "Empty" = ""),
+                                 selected = "NA",
+                                 inline = TRUE),
+        shiny::helpText(shiny::textOutput("missingValueFormatHelp"))
+      )
     )
   })
 
@@ -102,9 +168,9 @@ app_server <- function(input, output, session) {
   })
 
   # Categorical filter title
-  output$categoricalFilterTitle <- renderText({
-    get_label("categorical_vars", current_lang())
-  })
+  #output$categoricalFilterTitle <- renderText({
+   # get_label("categorical_vars", current_lang())
+  #})
 
   # Categorical selection UI
   output$categoricalSelectionUI <- renderUI({
@@ -122,7 +188,7 @@ app_server <- function(input, output, session) {
     shiny::selectInput(
       "plotType",
       shiny::HTML(paste0("&#x1F4CA; ", get_label("plot_type", lang))),
-      choices = stats::setNames(c("histogram", "boxplot"), 
+      choices = stats::setNames(c("histogram", "boxplot"),
                         c(get_label("histogram", lang), get_label("boxplot", lang))),
       selected = "histogram"
     )
@@ -147,7 +213,7 @@ app_server <- function(input, output, session) {
     lang <- current_lang()
     shiny::radioButtons(
       "qcMode", get_label("qc_mode", lang),
-      choices = stats::setNames(c("uniform", "individual"), 
+      choices = stats::setNames(c("uniform", "individual"),
                         c(get_label("uniform_qc", lang), get_label("individual_qc", lang))),
       selected = "uniform"
     )
@@ -159,9 +225,9 @@ app_server <- function(input, output, session) {
     shiny::div(
       shiny::radioButtons(
         "filterType", get_label("filter_type", lang),
-        choices = stats::setNames(c("threshold", "sd", "iqr"), 
-                          c(get_label("threshold_range", lang), 
-                            get_label("sd_multiplier", lang), 
+        choices = stats::setNames(c("threshold", "sd", "iqr"),
+                          c(get_label("threshold_range", lang),
+                            get_label("sd_multiplier", lang),
                             get_label("iqr_multiplier", lang)))
       ),
       shiny::conditionalPanel(
@@ -190,7 +256,7 @@ app_server <- function(input, output, session) {
     lang <- current_lang()
     shiny::div(
       shiny::actionButton("applyFilter", get_label("apply_filter", lang), class = "btn btn-primary"),
-      shiny::downloadButton("downloadData", get_label("download_filtered", lang), class = "btn btn-success")
+      shiny::actionButton("showDownloadModal", get_label("download_filtered", lang), class = "btn btn-success")
     )
   })
 
@@ -202,11 +268,33 @@ app_server <- function(input, output, session) {
   output$qcResultsTabTitle <- renderText({
     get_label("qc_results", current_lang())
   })
+  
+
+  # Missing value modal text outputs
+  output$missingValueModalTitle <- renderText({
+    get_label("missing_value_modal_title", current_lang())
+  })
+
+  output$missingValueModalText <- renderText({
+    get_label("missing_value_modal_text", current_lang())
+  })
+
+  output$missingValueFormatLabel <- renderText({
+    get_label("missing_value_format_label", current_lang())
+  })
+
+  output$confirmDownloadText <- renderText({
+    get_label("confirm_download_text", current_lang())
+  })
+
+  output$cancelDownloadText <- renderText({
+    get_label("cancel_download_text", current_lang())
+  })
 
   # QC Results content - only show when data is available
   output$qcResultsContent <- renderUI({
     lang <- current_lang()
-    
+
     # Check if filtered data is available
     if (is.null(filteredData()) || is.null(selectedData())) {
       return(shiny::div(
@@ -214,7 +302,7 @@ app_server <- function(input, output, session) {
         shiny::h4(get_label("no_data_comparison", lang))
       ))
     }
-    
+
     shiny::div(
       shiny::div(
         get_label("removed_records", lang),
@@ -237,21 +325,21 @@ app_server <- function(input, output, session) {
   # Generate individual QC controls for each selected column
   output$individualQCControls <- renderUI({
     req(input$columns, input$qcMode == "individual")
-    
+
     if (length(input$columns) == 0) {
       return(shiny::div("Please select columns first."))
     }
-    
+
     controls <- list()
-    
+
     for (i in seq_along(input$columns)) {
       col_name <- input$columns[i]
-      
+
       controls[[i]] <- shiny::div(
         class = "well",
         style = "margin-bottom: 10px; padding: 10px;",
         shiny::h6(shiny::strong(paste("Trait:", col_name))),
-        
+
         # Filter type selection for this trait
         shiny::radioButtons(
           inputId = paste0("filterType_", i),
@@ -263,7 +351,7 @@ app_server <- function(input, output, session) {
           ),
           selected = "sd"
         ),
-        
+
         # Threshold inputs
         shiny::conditionalPanel(
           condition = paste0("input.filterType_", i, " == 'threshold'"),
@@ -284,7 +372,7 @@ app_server <- function(input, output, session) {
             )
           )
         ),
-        
+
         # SD multiplier input
         shiny::conditionalPanel(
           condition = paste0("input.filterType_", i, " == 'sd'"),
@@ -296,7 +384,7 @@ app_server <- function(input, output, session) {
             step = 0.1
           )
         ),
-        
+
         # IQR multiplier input
         shiny::conditionalPanel(
           condition = paste0("input.filterType_", i, " == 'iqr'"),
@@ -310,26 +398,26 @@ app_server <- function(input, output, session) {
         )
       )
     }
-    
+
     return(controls)
   })
 
   # Generate categorical filter controls
   output$categoricalFilters <- renderUI({
     req(input$categoricalColumns, data())
-    
+
     lang <- current_lang()
-    
+
     if (length(input$categoricalColumns) == 0) {
       return(shiny::div(get_label("no_categorical", lang)))
     }
-    
+
     filters <- list()
-    
+
     for (i in seq_along(input$categoricalColumns)) {
       col_name <- input$categoricalColumns[i]
       unique_values <- sort(unique(data()[[col_name]]))
-      
+
       filters[[i]] <- shiny::div(
         class = "categorical-filter",
         shiny::h6(paste(get_label("filter_by", lang), col_name)),
@@ -346,28 +434,28 @@ app_server <- function(input, output, session) {
         )
       )
     }
-    
+
     return(filters)
   })
 
 
   selectedData <- reactive({
     req(input$columns, data())
-    
+
     df <- data()
-    
+
     # Apply categorical filters if any are selected
     if (!is.null(input$categoricalColumns) && length(input$categoricalColumns) > 0) {
       for (i in seq_along(input$categoricalColumns)) {
         col_name <- input$categoricalColumns[i]
         selected_values <- input[[paste0("catFilter_", i)]]
-        
+
         if (!is.null(selected_values) && length(selected_values) > 0) {
           df <- df[df[[col_name]] %in% selected_values, ]
         }
       }
     }
-    
+
     # Select only the specified columns
     df %>% dplyr::select(dplyr::all_of(input$columns))
   })
@@ -376,21 +464,21 @@ app_server <- function(input, output, session) {
   # Data summary information
   output$dataSummaryUI <- renderUI({
     req(selectedData(), data())
-    
+
     lang <- current_lang()
     original_rows <- nrow(data())
     filtered_rows <- nrow(selectedData())
-    
+
     summary_text <- paste0(
       "<div style='background-color: #E8F4FD; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-family: Times New Roman, SimSun, serif;'>",
       "<strong>", get_label("data_summary", lang), "</strong><br>",
       get_label("original_dataset", lang), " ", original_rows, " ", get_label("rows", lang), "<br>",
       get_label("after_filtering", lang), " ", filtered_rows, " ", get_label("rows", lang), "<br>",
-      get_label("filtered_out", lang), " ", original_rows - filtered_rows, " ", get_label("rows", lang), " (", 
+      get_label("filtered_out", lang), " ", original_rows - filtered_rows, " ", get_label("rows", lang), " (",
       round((original_rows - filtered_rows) / original_rows * 100, 1), "%)",
       "</div>"
     )
-    
+
     shiny::HTML(summary_text)
   })
 
@@ -446,19 +534,19 @@ app_server <- function(input, output, session) {
     req(input$columns, data())
 
     df <- data()
-    
+
     # Apply categorical filters first
     if (!is.null(input$categoricalColumns) && length(input$categoricalColumns) > 0) {
       for (i in seq_along(input$categoricalColumns)) {
         col_name <- input$categoricalColumns[i]
         selected_values <- input[[paste0("catFilter_", i)]]
-        
+
         if (!is.null(selected_values) && length(selected_values) > 0) {
           df <- df[df[[col_name]] %in% selected_values, ]
         }
       }
     }
-    
+
     # Convert selected columns to numeric
     for (col in input$columns) {
       df[[col]] <- suppressWarnings(as.numeric(df[[col]]))
@@ -471,7 +559,7 @@ app_server <- function(input, output, session) {
       if (input$filterType == "threshold") {
         min_val <- input$minVal
         max_val <- input$maxVal
-        criteria <- paste0("Threshold: [", 
+        criteria <- paste0("Threshold: [",
                             ifelse(is.na(min_val), "-Inf", min_val), ", ",
                             ifelse(is.na(max_val), "Inf", max_val), "]")
         for (col in input$columns) {
@@ -530,21 +618,21 @@ app_server <- function(input, output, session) {
       for (i in seq_along(input$columns)) {
         col <- input$columns[i]
         filter_type <- input[[paste0("filterType_", i)]]
-        
+
         original_count <- sum(!is.na(df[[col]]))
         criteria <- ""
-        
+
         if (filter_type == "threshold") {
           min_val <- input[[paste0("minVal_", i)]]
           max_val <- input[[paste0("maxVal_", i)]]
-          criteria <- paste0("Threshold: [", 
+          criteria <- paste0("Threshold: [",
                             ifelse(is.na(min_val), "-Inf", min_val), ", ",
                             ifelse(is.na(max_val), "Inf", max_val), "]")
           keep <- rep(TRUE, nrow(df))
           if (!is.na(min_val)) keep <- keep & (df[[col]] >= min_val | is.na(df[[col]]))
           if (!is.na(max_val)) keep <- keep & (df[[col]] <= max_val | is.na(df[[col]]))
           df[[col]][!keep] <- NA
-          
+
         } else if (filter_type == "sd") {
           multiplier <- input[[paste0("sdMultiplier_", i)]]
           criteria <- paste0("Mean +/- ", multiplier, " * SD")
@@ -553,7 +641,7 @@ app_server <- function(input, output, session) {
           lower <- col_mean - multiplier * col_sd
           upper <- col_mean + multiplier * col_sd
           df[[col]][!(df[[col]] >= lower & df[[col]] <= upper | is.na(df[[col]]))] <- NA
-          
+
         } else if (filter_type == "iqr") {
           multiplier <- input[[paste0("iqrMultiplier_", i)]]
           criteria <- paste0("IQR * ", multiplier)
@@ -563,7 +651,7 @@ app_server <- function(input, output, session) {
           upper_bound <- qs[2] + multiplier * iqr
           df[[col]][!(df[[col]] >= lower_bound & df[[col]] <= upper_bound | is.na(df[[col]]))] <- NA
         }
-        
+
         filtered_count <- sum(!is.na(df[[col]]))
         filter_stats[[col]] <- list(
           removed = original_count - filtered_count,
@@ -607,7 +695,7 @@ app_server <- function(input, output, session) {
       Original = sum(df$Original, na.rm = TRUE),
       Removed = sum(df$Removed, na.rm = TRUE),
       Remaining = sum(df$Remaining, na.rm = TRUE),
-      QC_Criteria = "N/A",
+      QC_Criteria = "",
       RemovalRate = ifelse(sum(df$Original, na.rm = TRUE) > 0,
                            sum(df$Removed, na.rm = TRUE) / sum(df$Original, na.rm = TRUE),
                            NA_real_)
@@ -625,7 +713,7 @@ app_server <- function(input, output, session) {
       Original = NA_integer_,
       Removed = NA_integer_,
       Remaining = complete_cases,
-      QC_Criteria = "N/A",
+      QC_Criteria = "",
       RemovalRate = NA_real_
     )
 
@@ -732,13 +820,102 @@ app_server <- function(input, output, session) {
   })
 
 
+  # Show download modal when download button is clicked
+  observeEvent(input$showDownloadModal, {
+    req(filteredData())
+    shiny::showModal(shiny::modalDialog(
+      title = get_label("missing_value_modal_title", current_lang()),
+      shiny::div(
+        style = "text-align: center;",
+        shiny::h5(get_label("missing_value_modal_text", current_lang())),
+        shiny::br(),
+        shiny::radioButtons(
+          "missingValueFormat",
+          label = get_label("missing_value_format_label", current_lang()),
+          choices = list(
+            "NA" = "na",
+            "0" = "zero", 
+            "-999" = "minus999"
+          ),
+          selected = "na",
+          inline = TRUE
+        ),
+        shiny::br(),
+        shiny::div(
+          style = "text-align: center;",
+          shiny::actionButton("confirmDownload", 
+                             get_label("confirm_download_text", current_lang()), 
+                             class = "btn btn-primary",
+                             style = "margin-right: 10px;"),
+          shiny::actionButton("cancelDownload", 
+                             get_label("cancel_download_text", current_lang()), 
+                             class = "btn btn-secondary")
+        )
+      ),
+      size = "m",
+      easyClose = FALSE,
+      footer = NULL
+    ))
+  })
+
+  # Handle cancel download
+  observeEvent(input$cancelDownload, {
+    shiny::removeModal()
+  })
+
+  # Store missing value format for download
+  downloadFormat <- reactiveVal("na")
+  
+  # Handle confirm download
+  observeEvent(input$confirmDownload, {
+    shiny::removeModal()
+    # Store the selected format
+    downloadFormat(input$missingValueFormat)
+    showNotification("Starting download...", type = "message")
+    
+    # Generate TXT content directly
+    req(filteredData())
+    data_to_download <- filteredData()$data
+    
+    # Convert missing values using efficient function
+    missing_format <- input$missingValueFormat
+    data_to_download <- convert_missing_values(data_to_download, missing_format)
+    
+    # Create TXT content with space delimiter
+    txt_content <- readr::format_delim(data_to_download, delim = " ")
+    
+    # Create filename
+    filename <- paste("phenotype_", Sys.Date(), ".txt", sep = "")
+    
+    # Create download link using JavaScript
+    session$sendCustomMessage("downloadCSV", list(
+      content = txt_content,
+      filename = filename
+    ))
+  })
+
+  # Hidden download link (kept for compatibility)
+  output$hiddenDownloadLink <- renderUI({
+    shiny::downloadLink("downloadData", "", style = "display: none;")
+  })
+
+  # Download handler (kept for compatibility)
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste("filtered_data_", Sys.Date(), ".csv", sep = "")
+      paste("phenotype_", Sys.Date(), ".txt", sep = "")
     },
     content = function(file) {
       req(filteredData())
-      readr::write_csv(filteredData()$data, file)
+      
+      # Get the filtered data (only the data part, not the stats)
+      data_to_download <- filteredData()$data
+      
+      # Convert missing values using efficient function
+      missing_format <- downloadFormat()
+      data_to_download <- convert_missing_values(data_to_download, missing_format)
+      
+      # Write TXT file with space delimiter
+      readr::write_delim(data_to_download, file, delim = " ")
     }
   )
   observeEvent(input$applyFilter, {

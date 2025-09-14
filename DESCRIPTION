@@ -20,6 +20,7 @@ Imports:
     readxl,
     tools,
     shiny,
+    shinyjs,
     shinythemes,
     tidyr,
     progress,
