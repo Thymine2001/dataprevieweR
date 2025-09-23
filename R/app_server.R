@@ -584,21 +584,40 @@ app_server <- function(input, output, session) {
     }
 
     shiny::div(
+      # Summary of Removed Records section
       shiny::div(
-        get_label("removed_records", lang),
-        style = "text-align:center; font-weight:bold; font-family:'Times New Roman', 'SimSun', serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
+        style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;",
+        shiny::div(
+          get_label("removed_records", lang),
+          style = "font-weight:bold; font-family:'Times New Roman', 'SimSun', serif; font-size:18px;"
+        ),
+        shiny::downloadButton("downloadFilterStats", "Download CSV", class = "btn btn-sm btn-outline-primary")
       ),
       DT::dataTableOutput("filterStats"),
       shiny::br(),
+      
+      # Comparison of Means section
       shiny::div(
-        get_label("comparison_means", lang),
-        style = "text-align:center; font-weight:bold; font-family:'Times New Roman', 'SimSun', serif; font-size:18px; margin-top:15px; margin-bottom:10px;"
+        style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;",
+        shiny::div(
+          get_label("comparison_means", lang),
+          style = "font-weight:bold; font-family:'Times New Roman', 'SimSun', serif; font-size:18px;"
+        ),
+        shiny::downloadButton("downloadQcSummary", "Download CSV", class = "btn btn-sm btn-outline-primary")
       ),
       DT::DTOutput("qcSummaryTable"),
-      shiny::plotOutput("comparisonPlots", height = "600px"),
       shiny::br(),
-      shiny::downloadButton("downloadComparisonPlot", get_label("download_comparison", lang), class = "btn btn-success",
-                            style = "float: right;")
+      
+      # Comparison plots section
+      shiny::div(
+        style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;",
+        shiny::div(
+          "Distribution Comparison Plots",
+          style = "font-weight:bold; font-family:'Times New Roman', 'SimSun', serif; font-size:18px;"
+        ),
+        shiny::downloadButton("downloadComparisonPlot", get_label("download_comparison", lang), class = "btn btn-sm btn-outline-primary")
+      ),
+      shiny::plotOutput("comparisonPlots", height = "600px")
     )
   })
 
@@ -1378,4 +1397,88 @@ app_server <- function(input, output, session) {
       HTML(paste0("<span style='color: #444;'>", get_label("supported_types", lang), "</span>"))
     )
   })
+  
+  # Download handler for Filter Stats table
+  output$downloadFilterStats <- downloadHandler(
+    filename = function() {
+      paste0("filter_stats_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      req(filteredData())
+      
+      # Get the filter stats data
+      stats <- filteredData()$stats
+      
+      if (length(stats) == 0) {
+        # Create empty data frame if no stats
+        df <- data.frame(
+          Column = character(0),
+          Original = integer(0),
+          Removed = integer(0),
+          Remaining = integer(0),
+          RemovalRate = numeric(0),
+          QC_Criteria = character(0)
+        )
+      } else {
+        # Create data frame from stats
+        df <- data.frame(
+          Column = names(stats),
+          Original = sapply(stats, function(x) (x$removed %||% 0) + (x$remaining %||% 0)),
+          Removed = sapply(stats, function(x) x$removed),
+          Remaining = sapply(stats, function(x) x$remaining),
+          QC_Criteria = sapply(stats, function(x) x$criteria %||% ""),
+          stringsAsFactors = FALSE
+        )
+        df$RemovalRate <- ifelse(df$Original > 0, df$Removed / df$Original, NA_real_)
+        
+        # Add total row
+        total_row <- data.frame(
+          Column = "Total",
+          Original = sum(df$Original, na.rm = TRUE),
+          Removed = sum(df$Removed, na.rm = TRUE),
+          Remaining = sum(df$Remaining, na.rm = TRUE),
+          QC_Criteria = "",
+          RemovalRate = ifelse(sum(df$Original, na.rm = TRUE) > 0,
+                               sum(df$Removed, na.rm = TRUE) / sum(df$Original, na.rm = TRUE),
+                               NA_real_)
+        )
+        df <- rbind(df, total_row)
+        
+        # Add complete cases row
+        complete_cases <- filteredData()$data %>%
+          dplyr::select(dplyr::all_of(input$columns)) %>%
+          stats::complete.cases() %>%
+          sum()
+        
+        complete_row <- data.frame(
+          Column = "Complete_Cases",
+          Original = NA_integer_,
+          Removed = NA_integer_,
+          Remaining = complete_cases,
+          QC_Criteria = "",
+          RemovalRate = NA_real_
+        )
+        df <- rbind(df, complete_row)
+      }
+      
+      # Write CSV file
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
+  
+  # Download handler for QC Summary table
+  output$downloadQcSummary <- downloadHandler(
+    filename = function() {
+      paste0("qc_summary_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      req(qcSummary())
+      
+      # Get the QC summary data
+      df <- qcSummary()
+      
+      # Write CSV file
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
 }
