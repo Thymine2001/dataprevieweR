@@ -94,9 +94,37 @@ app_server <- function(input, output, session) {
 
     tryCatch({
       res <- switch(tolower(ext),
-                    "csv"  = readr::read_csv(filepath, col_names = TRUE),
-                    "tsv"  = readr::read_tsv(filepath, col_names = TRUE),
-                    "txt"  = read.table(filepath, header = TRUE, sep = "", stringsAsFactors = FALSE),
+                    "csv"  = {
+                      # Try readr first, fallback to base R if it fails
+                      tryCatch({
+                        readr::read_csv(filepath, col_names = TRUE, 
+                                      show_col_types = FALSE, 
+                                      guess_max = 1000,
+                                      locale = readr::locale(encoding = "UTF-8"))
+                      }, error = function(e) {
+                        # Fallback to base R read.csv
+                        read.csv(filepath, header = TRUE, 
+                                stringsAsFactors = FALSE, 
+                                fileEncoding = "UTF-8")
+                      })
+                    },
+                    "tsv"  = {
+                      # Try readr first, fallback to base R if it fails
+                      tryCatch({
+                        readr::read_tsv(filepath, col_names = TRUE, 
+                                      show_col_types = FALSE, 
+                                      guess_max = 1000,
+                                      locale = readr::locale(encoding = "UTF-8"))
+                      }, error = function(e) {
+                        # Fallback to base R read.table
+                        read.table(filepath, header = TRUE, sep = "\t", 
+                                  stringsAsFactors = FALSE, 
+                                  fileEncoding = "UTF-8")
+                      })
+                    },
+                    "txt"  = read.table(filepath, header = TRUE, sep = "", 
+                                       stringsAsFactors = FALSE, 
+                                       fileEncoding = "UTF-8"),
                     "xlsx" = readxl::read_excel(filepath),
                     "xls"  = readxl::read_excel(filepath),
                     "rds"  = readRDS(filepath),
