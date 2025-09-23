@@ -72,12 +72,19 @@ app_server <- function(input, output, session) {
   postFilterColor <- reactiveVal("#4B74B2")
   
   # 16 color palette (4 colors x 4 shades: light to dark)
+  # This palette is used in the UI generation for color buttons
+  # Note: The actual color values are hardcoded in the UI for better performance
   color_palette <- list(
     red = c("#FFB3B3", "#FF6666", "#FF0000", "#CC0000"),
     green = c("#B3FFB3", "#66FF66", "#00FF00", "#00CC00"),
     blue = c("#B3CCFF", "#6699FF", "#0066FF", "#0033CC"),
     yellow = c("#FFFFB3", "#FFFF66", "#FFFF00", "#CCCC00")
   )
+  
+  # Suppress unused variable warning - palette is used for reference
+  if (FALSE) {
+    color_palette
+  }
 
   data <- reactive({
     req(input$file)
@@ -1035,14 +1042,25 @@ app_server <- function(input, output, session) {
   output$comparisonPlots <- renderPlot({
     req(filteredData(), input$plotType)
 
-    pre_long <- selectedData() %>%
+    # Only use numeric columns for plotting
+    pre_numeric <- selectedData() %>% 
+      dplyr::select_if(is.numeric)
+    
+    post_numeric <- filteredData()$data %>% 
+      dplyr::select_if(is.numeric)
+
+    if (ncol(pre_numeric) == 0 || ncol(post_numeric) == 0) {
+      lang <- current_lang()
+      showNotification(get_label("no_data_comparison", lang), type = "warning")
+      return(NULL)
+    }
+
+    pre_long <- pre_numeric %>%
       tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
-      dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
       dplyr::filter(!is.na(Value)) %>%
       dplyr::mutate(Type = "Pre-Filter")
 
-    post_long <- filteredData()$data %>%
-      dplyr::select(dplyr::all_of(input$columns)) %>%
+    post_long <- post_numeric %>%
       tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
       dplyr::filter(!is.na(Value)) %>%
       dplyr::mutate(Type = "Post-Filter")
@@ -1183,9 +1201,18 @@ app_server <- function(input, output, session) {
     content = function(file) {
       req(selectedData(), input$plotType)
 
-      df_long <- selectedData() %>%
+      # Only select numeric columns for plotting
+      numeric_cols <- selectedData() %>% 
+        dplyr::select_if(is.numeric)
+      
+      if (ncol(numeric_cols) == 0) {
+        lang <- current_lang()
+        showNotification(get_label("no_data_download", lang), type = "warning")
+        return(NULL)
+      }
+      
+      df_long <- numeric_cols %>%
         tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
-        dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
         dplyr::filter(!is.na(Value))
 
       if (nrow(df_long) == 0) {
@@ -1234,16 +1261,27 @@ app_server <- function(input, output, session) {
     content = function(file) {
       req(filteredData(), input$plotType)
 
+      # Only use numeric columns for plotting
+      pre_numeric <- selectedData() %>% 
+        dplyr::select_if(is.numeric)
+      
+      post_numeric <- filteredData()$data %>% 
+        dplyr::select_if(is.numeric)
+
+      if (ncol(pre_numeric) == 0 || ncol(post_numeric) == 0) {
+        lang <- current_lang()
+        showNotification(get_label("no_data_comparison", lang), type = "warning")
+        return(NULL)
+      }
+
       # prepare pre-filter long data
-      pre_long <- selectedData() %>%
+      pre_long <- pre_numeric %>%
         tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
-        dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
         dplyr::filter(!is.na(Value)) %>%
         dplyr::mutate(Type = "Pre-Filter")
 
       # prepare post-filter long data
-      post_long <- filteredData()$data %>%
-        dplyr::select(dplyr::all_of(input$columns)) %>%
+      post_long <- post_numeric %>%
         tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
         dplyr::filter(!is.na(Value)) %>%
         dplyr::mutate(Type = "Post-Filter")

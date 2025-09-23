@@ -19,3 +19,11 @@ Thumbs.db
 # Build artifacts
 *.tar.gz
 *.zip
+
+# Deployment files
+DEPLOYMENT.md
+app.R
+deploy.R
+deploy_interactive.R
+rsconnect/
+deploy/

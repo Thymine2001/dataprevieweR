@@ -203,7 +203,7 @@ app_ui <- function(request) {
 
           # Visualization Options Panel
           shiny::wellPanel(
-            shiny::h4("📊 Visualization Options", style = "margin-top: 0; color: #2c3e50; font-weight: bold;"),
+            shiny::h4("Visualization Options", style = "margin-top: 0; color: #2c3e50; font-weight: bold;"),
             
             shiny::uiOutput("columnSelectionUI"),
 
@@ -235,7 +235,7 @@ app_ui <- function(request) {
 
           # Quality Control Options Panel
           shiny::wellPanel(
-            shiny::h4("🔍 Quality Control Options", style = "margin-top: 0; color: #2c3e50; font-weight: bold;"),
+            shiny::h4("Quality Control Options", style = "margin-top: 0; color: #2c3e50; font-weight: bold;"),
             shiny::h5(shiny::textOutput("qcFilterTitle"), style = "margin-top: 0; margin-bottom: 15px; color: #34495e;"),
 
             shiny::uiOutput("qcModeUI"),
@@ -259,7 +259,7 @@ app_ui <- function(request) {
             # Action buttons section
             shiny::div(
               style = "margin-top: 20px; padding: 15px; background-color: #e8f5e8; border-radius: 5px; border: 1px solid #c3e6c3;",
-              shiny::h5("📊 Apply & Download", style = "margin-top: 0; margin-bottom: 15px; color: #2d5a2d; font-weight: bold;"),
+              shiny::h5("Apply & Download", style = "margin-top: 0; margin-bottom: 15px; color: #2d5a2d; font-weight: bold;"),
               shiny::uiOutput("actionButtonsUI")
             )
           )
