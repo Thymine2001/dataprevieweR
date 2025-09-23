@@ -1042,11 +1042,13 @@ app_server <- function(input, output, session) {
   output$comparisonPlots <- renderPlot({
     req(filteredData(), input$plotType)
 
-    # Only use numeric columns for plotting
+    # Only use selected numeric columns for plotting
     pre_numeric <- selectedData() %>% 
+      dplyr::select(dplyr::all_of(input$columns)) %>%
       dplyr::select_if(is.numeric)
     
     post_numeric <- filteredData()$data %>% 
+      dplyr::select(dplyr::all_of(input$columns)) %>%
       dplyr::select_if(is.numeric)
 
     if (ncol(pre_numeric) == 0 || ncol(post_numeric) == 0) {
@@ -1261,11 +1263,13 @@ app_server <- function(input, output, session) {
     content = function(file) {
       req(filteredData(), input$plotType)
 
-      # Only use numeric columns for plotting
+      # Only use selected numeric columns for plotting
       pre_numeric <- selectedData() %>% 
+        dplyr::select(dplyr::all_of(input$columns)) %>%
         dplyr::select_if(is.numeric)
       
       post_numeric <- filteredData()$data %>% 
+        dplyr::select(dplyr::all_of(input$columns)) %>%
         dplyr::select_if(is.numeric)
 
       if (ncol(pre_numeric) == 0 || ncol(post_numeric) == 0) {
