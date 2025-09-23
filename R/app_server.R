@@ -1040,16 +1040,23 @@ app_server <- function(input, output, session) {
   })
 
   output$comparisonPlots <- renderPlot({
-    req(filteredData(), input$plotType)
+    req(filteredData(), input$plotType, input$columns)
 
-    # Only use selected numeric columns for plotting
-    pre_numeric <- selectedData() %>% 
-      dplyr::select(dplyr::all_of(input$columns)) %>%
-      dplyr::select_if(is.numeric)
+    # Ensure we only use selected columns that are numeric
+    selected_cols <- input$columns
+    if (is.null(selected_cols) || length(selected_cols) == 0) {
+      return(NULL)
+    }
     
-    post_numeric <- filteredData()$data %>% 
-      dplyr::select(dplyr::all_of(input$columns)) %>%
-      dplyr::select_if(is.numeric)
+    # Get pre-filter data (already filtered to selected columns)
+    pre_data <- selectedData()
+    pre_numeric <- pre_data[, selected_cols, drop = FALSE]
+    pre_numeric <- pre_numeric[, sapply(pre_numeric, is.numeric), drop = FALSE]
+    
+    # Get post-filter data and ensure we only select the same columns
+    post_data <- filteredData()$data
+    post_numeric <- post_data[, selected_cols, drop = FALSE]
+    post_numeric <- post_numeric[, sapply(post_numeric, is.numeric), drop = FALSE]
 
     if (ncol(pre_numeric) == 0 || ncol(post_numeric) == 0) {
       lang <- current_lang()
@@ -1263,14 +1270,21 @@ app_server <- function(input, output, session) {
     content = function(file) {
       req(filteredData(), input$plotType)
 
-      # Only use selected numeric columns for plotting
-      pre_numeric <- selectedData() %>% 
-        dplyr::select(dplyr::all_of(input$columns)) %>%
-        dplyr::select_if(is.numeric)
+      # Ensure we only use selected columns that are numeric
+      selected_cols <- input$columns
+      if (is.null(selected_cols) || length(selected_cols) == 0) {
+        return(NULL)
+      }
       
-      post_numeric <- filteredData()$data %>% 
-        dplyr::select(dplyr::all_of(input$columns)) %>%
-        dplyr::select_if(is.numeric)
+      # Get pre-filter data (already filtered to selected columns)
+      pre_data <- selectedData()
+      pre_numeric <- pre_data[, selected_cols, drop = FALSE]
+      pre_numeric <- pre_numeric[, sapply(pre_numeric, is.numeric), drop = FALSE]
+      
+      # Get post-filter data and ensure we only select the same columns
+      post_data <- filteredData()$data
+      post_numeric <- post_data[, selected_cols, drop = FALSE]
+      post_numeric <- post_numeric[, sapply(post_numeric, is.numeric), drop = FALSE]
 
       if (ncol(pre_numeric) == 0 || ncol(post_numeric) == 0) {
         lang <- current_lang()
