@@ -67,6 +67,18 @@ convert_values_to_na <- function(data, missing_values) {
 
 app_server <- function(input, output, session) {
 
+  # Color reactive values
+  preFilterColor <- reactiveVal("#DB3124")
+  postFilterColor <- reactiveVal("#4B74B2")
+  
+  # 16 color palette (4 colors x 4 shades: light to dark)
+  color_palette <- list(
+    red = c("#FFB3B3", "#FF6666", "#FF0000", "#CC0000"),
+    green = c("#B3FFB3", "#66FF66", "#00FF00", "#00CC00"),
+    blue = c("#B3CCFF", "#6699FF", "#0066FF", "#0033CC"),
+    yellow = c("#FFFFB3", "#FFFF66", "#FFFF00", "#CCCC00")
+  )
+
   data <- reactive({
     req(input$file)
 
@@ -182,6 +194,11 @@ app_server <- function(input, output, session) {
     )
   })
 
+  # Plot type title
+  output$plotTypeTitle <- renderText({
+    get_label("plot_type_title", current_lang())
+  })
+
   # Plot type UI
   output$plotTypeUI <- renderUI({
     lang <- current_lang()
@@ -201,6 +218,234 @@ app_server <- function(input, output, session) {
       condition = "input.plotType == 'histogram'",
       shiny::numericInput("bins", get_label("hist_bin", lang), value = 30, min = 1, step = 1)
     )
+  })
+
+  # Color customization title
+  output$colorCustomizationTitle <- renderText({
+    get_label("color_customization", current_lang())
+  })
+
+  # Show/Hide color options text
+  output$showColorOptionsText <- renderText({
+    lang <- current_lang()
+    if (is.null(input$toggleColorOptions) || input$toggleColorOptions %% 2 == 0) {
+      get_label("show_color_options", lang)
+    } else {
+      get_label("hide_color_options", lang)
+    }
+  })
+
+  # Color customization UI
+  output$colorCustomizationUI <- renderUI({
+    lang <- current_lang()
+    shiny::div(
+      # Pre-filter color
+      shiny::div(
+        style = "margin-bottom: 20px;",
+        shiny::h5(get_label("pre_filter_color", lang)),
+        
+        # Color palette for pre-filter
+        shiny::div(
+          style = "margin-bottom: 10px;",
+          shiny::h6(get_label("color_palette_label", lang), style = "margin-bottom: 8px; font-weight: bold;"),
+          shiny::div(
+            style = "display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;",
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Red"),
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Green"),
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Blue"),
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Yellow"),
+            # Red shades
+            shiny::actionButton("preFilterRed1", "", style = "width: 30px; height: 30px; background-color: #FFB3B3; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterGreen1", "", style = "width: 30px; height: 30px; background-color: #B3FFB3; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterBlue1", "", style = "width: 30px; height: 30px; background-color: #B3CCFF; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterYellow1", "", style = "width: 30px; height: 30px; background-color: #FFFFB3; border: 1px solid #ccc;"),
+            # Row 2
+            shiny::actionButton("preFilterRed2", "", style = "width: 30px; height: 30px; background-color: #FF6666; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterGreen2", "", style = "width: 30px; height: 30px; background-color: #66FF66; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterBlue2", "", style = "width: 30px; height: 30px; background-color: #6699FF; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterYellow2", "", style = "width: 30px; height: 30px; background-color: #FFFF66; border: 1px solid #ccc;"),
+            # Row 3
+            shiny::actionButton("preFilterRed3", "", style = "width: 30px; height: 30px; background-color: #FF0000; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterGreen3", "", style = "width: 30px; height: 30px; background-color: #00FF00; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterBlue3", "", style = "width: 30px; height: 30px; background-color: #0066FF; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterYellow3", "", style = "width: 30px; height: 30px; background-color: #FFFF00; border: 1px solid #ccc;"),
+            # Row 4
+            shiny::actionButton("preFilterRed4", "", style = "width: 30px; height: 30px; background-color: #CC0000; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterGreen4", "", style = "width: 30px; height: 30px; background-color: #00CC00; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterBlue4", "", style = "width: 30px; height: 30px; background-color: #0033CC; border: 1px solid #ccc;"),
+            shiny::actionButton("preFilterYellow4", "", style = "width: 30px; height: 30px; background-color: #CCCC00; border: 1px solid #ccc;")
+          )
+        ),
+        
+        # Manual input for pre-filter
+        shiny::div(
+          style = "display: flex; align-items: center; gap: 10px;",
+          shiny::textInput(
+            "preFilterColorInput", 
+            get_label("color_input_label", lang), 
+            value = preFilterColor(),
+            width = "150px"
+          ),
+          shiny::div(
+            style = "display: flex; align-items: center; gap: 5px;",
+            shiny::textOutput("color_picker_label", inline = TRUE),
+            shiny::actionButton("preFilterColorPicker", "", 
+                               style = paste0("width: 30px; height: 30px; background-color: ", preFilterColor(), "; border: 1px solid #ccc;"))
+          )
+        )
+      ),
+      
+      # Post-filter color
+      shiny::div(
+        style = "margin-bottom: 20px;",
+        shiny::h5(get_label("post_filter_color", lang)),
+        
+        # Color palette for post-filter
+        shiny::div(
+          style = "margin-bottom: 10px;",
+          shiny::h6(get_label("color_palette_label", lang), style = "margin-bottom: 8px; font-weight: bold;"),
+          shiny::div(
+            style = "display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;",
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Red"),
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Green"),
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Blue"),
+            shiny::div(style = "text-align: center; font-size: 10px; color: #666;", "Yellow"),
+            # Red shades
+            shiny::actionButton("postFilterRed1", "", style = "width: 30px; height: 30px; background-color: #FFB3B3; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterGreen1", "", style = "width: 30px; height: 30px; background-color: #B3FFB3; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterBlue1", "", style = "width: 30px; height: 30px; background-color: #B3CCFF; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterYellow1", "", style = "width: 30px; height: 30px; background-color: #FFFFB3; border: 1px solid #ccc;"),
+            # Row 2
+            shiny::actionButton("postFilterRed2", "", style = "width: 30px; height: 30px; background-color: #FF6666; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterGreen2", "", style = "width: 30px; height: 30px; background-color: #66FF66; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterBlue2", "", style = "width: 30px; height: 30px; background-color: #6699FF; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterYellow2", "", style = "width: 30px; height: 30px; background-color: #FFFF66; border: 1px solid #ccc;"),
+            # Row 3
+            shiny::actionButton("postFilterRed3", "", style = "width: 30px; height: 30px; background-color: #FF0000; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterGreen3", "", style = "width: 30px; height: 30px; background-color: #00FF00; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterBlue3", "", style = "width: 30px; height: 30px; background-color: #0066FF; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterYellow3", "", style = "width: 30px; height: 30px; background-color: #FFFF00; border: 1px solid #ccc;"),
+            # Row 4
+            shiny::actionButton("postFilterRed4", "", style = "width: 30px; height: 30px; background-color: #CC0000; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterGreen4", "", style = "width: 30px; height: 30px; background-color: #00CC00; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterBlue4", "", style = "width: 30px; height: 30px; background-color: #0033CC; border: 1px solid #ccc;"),
+            shiny::actionButton("postFilterYellow4", "", style = "width: 30px; height: 30px; background-color: #CCCC00; border: 1px solid #ccc;")
+          )
+        ),
+        
+        # Manual input for post-filter
+        shiny::div(
+          style = "display: flex; align-items: center; gap: 10px;",
+          shiny::textInput(
+            "postFilterColorInput", 
+            get_label("color_input_label", lang), 
+            value = postFilterColor(),
+            width = "150px"
+          ),
+          shiny::div(
+            style = "display: flex; align-items: center; gap: 5px;",
+            shiny::textOutput("color_picker_label", inline = TRUE),
+            shiny::actionButton("postFilterColorPicker", "", 
+                               style = paste0("width: 30px; height: 30px; background-color: ", postFilterColor(), "; border: 1px solid #ccc;"))
+          )
+        )
+      ),
+      
+      # Reset button
+      shiny::div(
+        style = "text-align: center; margin-top: 10px;",
+        shiny::actionButton("resetColors", get_label("reset_colors", lang), 
+                           class = "btn btn-warning btn-sm")
+      )
+    )
+  })
+
+  # Color input handlers
+  observeEvent(input$preFilterColorInput, {
+    if (!is.null(input$preFilterColorInput) && nchar(input$preFilterColorInput) > 0) {
+      # Validate hex color format
+      if (grepl("^#[0-9A-Fa-f]{6}$", input$preFilterColorInput)) {
+        preFilterColor(input$preFilterColorInput)
+      }
+    }
+  })
+
+  observeEvent(input$postFilterColorInput, {
+    if (!is.null(input$postFilterColorInput) && nchar(input$postFilterColorInput) > 0) {
+      # Validate hex color format
+      if (grepl("^#[0-9A-Fa-f]{6}$", input$postFilterColorInput)) {
+        postFilterColor(input$postFilterColorInput)
+      }
+    }
+  })
+
+  # Color picker handlers (using shinyjs for color picker)
+  observeEvent(input$preFilterColorPicker, {
+    shinyjs::runjs("
+      const color = prompt('Enter color (e.g., #FF0000):', '#DB3124');
+      if (color && /^#[0-9A-Fa-f]{6}$/.test(color)) {
+        Shiny.setInputValue('preFilterColorInput', color);
+      }
+    ")
+  })
+
+  observeEvent(input$postFilterColorPicker, {
+    shinyjs::runjs("
+      const color = prompt('Enter color (e.g., #FF0000):', '#4B74B2');
+      if (color && /^#[0-9A-Fa-f]{6}$/.test(color)) {
+        Shiny.setInputValue('postFilterColorInput', color);
+      }
+    ")
+  })
+
+  # Color palette button handlers for pre-filter
+  observeEvent(input$preFilterRed1, { preFilterColor("#FFB3B3"); updateTextInput(session, "preFilterColorInput", value = "#FFB3B3") })
+  observeEvent(input$preFilterRed2, { preFilterColor("#FF6666"); updateTextInput(session, "preFilterColorInput", value = "#FF6666") })
+  observeEvent(input$preFilterRed3, { preFilterColor("#FF0000"); updateTextInput(session, "preFilterColorInput", value = "#FF0000") })
+  observeEvent(input$preFilterRed4, { preFilterColor("#CC0000"); updateTextInput(session, "preFilterColorInput", value = "#CC0000") })
+  
+  observeEvent(input$preFilterGreen1, { preFilterColor("#B3FFB3"); updateTextInput(session, "preFilterColorInput", value = "#B3FFB3") })
+  observeEvent(input$preFilterGreen2, { preFilterColor("#66FF66"); updateTextInput(session, "preFilterColorInput", value = "#66FF66") })
+  observeEvent(input$preFilterGreen3, { preFilterColor("#00FF00"); updateTextInput(session, "preFilterColorInput", value = "#00FF00") })
+  observeEvent(input$preFilterGreen4, { preFilterColor("#00CC00"); updateTextInput(session, "preFilterColorInput", value = "#00CC00") })
+  
+  observeEvent(input$preFilterBlue1, { preFilterColor("#B3CCFF"); updateTextInput(session, "preFilterColorInput", value = "#B3CCFF") })
+  observeEvent(input$preFilterBlue2, { preFilterColor("#6699FF"); updateTextInput(session, "preFilterColorInput", value = "#6699FF") })
+  observeEvent(input$preFilterBlue3, { preFilterColor("#0066FF"); updateTextInput(session, "preFilterColorInput", value = "#0066FF") })
+  observeEvent(input$preFilterBlue4, { preFilterColor("#0033CC"); updateTextInput(session, "preFilterColorInput", value = "#0033CC") })
+  
+  observeEvent(input$preFilterYellow1, { preFilterColor("#FFFFB3"); updateTextInput(session, "preFilterColorInput", value = "#FFFFB3") })
+  observeEvent(input$preFilterYellow2, { preFilterColor("#FFFF66"); updateTextInput(session, "preFilterColorInput", value = "#FFFF66") })
+  observeEvent(input$preFilterYellow3, { preFilterColor("#FFFF00"); updateTextInput(session, "preFilterColorInput", value = "#FFFF00") })
+  observeEvent(input$preFilterYellow4, { preFilterColor("#CCCC00"); updateTextInput(session, "preFilterColorInput", value = "#CCCC00") })
+
+  # Color palette button handlers for post-filter
+  observeEvent(input$postFilterRed1, { postFilterColor("#FFB3B3"); updateTextInput(session, "postFilterColorInput", value = "#FFB3B3") })
+  observeEvent(input$postFilterRed2, { postFilterColor("#FF6666"); updateTextInput(session, "postFilterColorInput", value = "#FF6666") })
+  observeEvent(input$postFilterRed3, { postFilterColor("#FF0000"); updateTextInput(session, "postFilterColorInput", value = "#FF0000") })
+  observeEvent(input$postFilterRed4, { postFilterColor("#CC0000"); updateTextInput(session, "postFilterColorInput", value = "#CC0000") })
+  
+  observeEvent(input$postFilterGreen1, { postFilterColor("#B3FFB3"); updateTextInput(session, "postFilterColorInput", value = "#B3FFB3") })
+  observeEvent(input$postFilterGreen2, { postFilterColor("#66FF66"); updateTextInput(session, "postFilterColorInput", value = "#66FF66") })
+  observeEvent(input$postFilterGreen3, { postFilterColor("#00FF00"); updateTextInput(session, "postFilterColorInput", value = "#00FF00") })
+  observeEvent(input$postFilterGreen4, { postFilterColor("#00CC00"); updateTextInput(session, "postFilterColorInput", value = "#00CC00") })
+  
+  observeEvent(input$postFilterBlue1, { postFilterColor("#B3CCFF"); updateTextInput(session, "postFilterColorInput", value = "#B3CCFF") })
+  observeEvent(input$postFilterBlue2, { postFilterColor("#6699FF"); updateTextInput(session, "postFilterColorInput", value = "#6699FF") })
+  observeEvent(input$postFilterBlue3, { postFilterColor("#0066FF"); updateTextInput(session, "postFilterColorInput", value = "#0066FF") })
+  observeEvent(input$postFilterBlue4, { postFilterColor("#0033CC"); updateTextInput(session, "postFilterColorInput", value = "#0033CC") })
+  
+  observeEvent(input$postFilterYellow1, { postFilterColor("#FFFFB3"); updateTextInput(session, "postFilterColorInput", value = "#FFFFB3") })
+  observeEvent(input$postFilterYellow2, { postFilterColor("#FFFF66"); updateTextInput(session, "postFilterColorInput", value = "#FFFF66") })
+  observeEvent(input$postFilterYellow3, { postFilterColor("#FFFF00"); updateTextInput(session, "postFilterColorInput", value = "#FFFF00") })
+  observeEvent(input$postFilterYellow4, { postFilterColor("#CCCC00"); updateTextInput(session, "postFilterColorInput", value = "#CCCC00") })
+
+  # Reset colors to default
+  observeEvent(input$resetColors, {
+    preFilterColor("#DB3124")
+    postFilterColor("#4B74B2")
+    updateTextInput(session, "preFilterColorInput", value = "#DB3124")
+    updateTextInput(session, "postFilterColorInput", value = "#4B74B2")
   })
 
   # QC filter title
@@ -490,9 +735,19 @@ app_server <- function(input, output, session) {
 
   output$preDistPlot <- renderPlot({
     req(selectedData(), input$plotType)
-    df_long <- selectedData() %>%
+    
+    # Only select numeric columns for plotting
+    numeric_cols <- selectedData() %>% 
+      dplyr::select_if(is.numeric)
+    
+    if (ncol(numeric_cols) == 0) {
+      lang <- current_lang()
+      showNotification(get_label("no_data_plot", lang), type = "warning")
+      return(NULL)
+    }
+    
+    df_long <- numeric_cols %>%
       tidyr::pivot_longer(everything(), names_to = "Column", values_to = "Value") %>%
-      dplyr::mutate(Value = suppressWarnings(as.numeric(Value))) %>%
       dplyr::filter(!is.na(Value))
     plot_ready(TRUE)
     if (nrow(df_long) == 0) {
@@ -504,20 +759,20 @@ app_server <- function(input, output, session) {
 
     if (input$plotType == "histogram") {
       ggplot(df_long, aes(x = Value)) +
-        geom_histogram(bins = input$bins, fill = "#DB3124", alpha = 0.7) +
+        geom_histogram(bins = input$bins, fill = preFilterColor(), alpha = 0.7) +
         facet_wrap(~ Column, scales = "free") +
         labs(title = "Pre-Filter Data Distribution", x = "Value", y = "Frequency") +
         theme_minimal(base_size = 14) +
         theme(plot.title = element_text(hjust = 0.5))
     } else {
       #ggplot(df_long, aes(y = Value, x = Column)) +
-       # geom_boxplot(fill = "#DB3124", alpha = 0.7) +
+       # geom_boxplot(fill = preFilterColor(), alpha = 0.7) +
         #labs(title = "Pre-Filter Data Distribution (Boxplot)", x = "Column", y = "Value") +
         #theme_minimal(base_size = 14) +
         #theme(axis.text.x = element_text(angle = 45, hjust = 1),
          #     plot.title = element_text(hjust = 0.5))
       ggplot(df_long, aes(y = Value)) +
-        geom_boxplot(fill = "#DB3124", alpha = 0.7) +
+        geom_boxplot(fill = preFilterColor(), alpha = 0.7) +
         facet_wrap(~ Column, scales = "free") +
         labs(title = "Pre-Filter Data Distribution (Boxplot)", x = "Column", y = "Value") +
         theme_minimal(base_size = 14) +
@@ -803,7 +1058,7 @@ app_server <- function(input, output, session) {
       ggplot(combined, aes(x = Value, fill = Type)) +
         geom_histogram(bins = input$bins, alpha = 0.7, position = "dodge") +
         facet_wrap(~ Column, scales = "free") +
-        scale_fill_manual(values = c("Pre-Filter" = "#DB3124", "Post-Filter" = "#4B74B2")) +
+        scale_fill_manual(values = c("Pre-Filter" = preFilterColor(), "Post-Filter" = postFilterColor())) +
         labs(title = "Pre-Filter vs Post-Filter Data Distribution", x = "Value", y = "Frequency") +
         theme_minimal(base_size = 14) +
         theme(plot.title = element_text(hjust = 0.5))
@@ -811,7 +1066,7 @@ app_server <- function(input, output, session) {
       ggplot(combined, aes(y = Value, x = Type, fill = Type)) +
         geom_boxplot(alpha = 0.7) +
         facet_wrap(~ Column, scales = "free") +
-        scale_fill_manual(values = c("Pre-Filter" = "#DB3124", "Post-Filter" = "#4B74B2")) +
+        scale_fill_manual(values = c("Pre-Filter" = preFilterColor(), "Post-Filter" = postFilterColor())) +
         labs(title = "Pre-Filter vs Post-Filter Data Distribution (Boxplot)", x = "Type", y = "Value") +
         theme_minimal(base_size = 14) +
         theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -944,14 +1199,14 @@ app_server <- function(input, output, session) {
 
       if (input$plotType == "histogram") {
         p <- ggplot(df_long, aes(x = Value)) +
-          geom_histogram(bins = input$bins, fill = "#DB3124", alpha = 0.7) +
+          geom_histogram(bins = input$bins, fill = preFilterColor(), alpha = 0.7) +
           facet_wrap(~ Column, scales = "free") +
           labs(title = "Pre-Filter Data Distribution", x = "Value", y = "Frequency") +
           theme_minimal(base_size = 14) +
           theme(plot.title = element_text(hjust = 0.5))
       } else {
         p <- ggplot(df_long, aes(y = Value)) +
-          geom_boxplot(fill = "#DB3124", alpha = 0.7) +
+          geom_boxplot(fill = preFilterColor(), alpha = 0.7) +
           facet_wrap(~ Column, scales = "free") +
           labs(title = "Pre-Filter Data Distribution (Boxplot)", x = "Column", y = "Value") +
           theme_minimal(base_size = 14) +
@@ -1007,7 +1262,7 @@ app_server <- function(input, output, session) {
         p <- ggplot(combined, aes(x = Value, fill = Type)) +
           geom_histogram(bins = input$bins, alpha = 0.7, position = "dodge") +
           facet_wrap(~ Column, scales = "free") +
-          scale_fill_manual(values = c("Pre-Filter" = "#DB3124", "Post-Filter" = "#4B74B2")) +
+          scale_fill_manual(values = c("Pre-Filter" = preFilterColor(), "Post-Filter" = postFilterColor())) +
           labs(title = "Pre vs Post Filter Data Distribution", x = "Value", y = "Frequency") +
           theme_minimal(base_size = 14) +
           theme(plot.title = element_text(hjust = 0.5))
@@ -1015,7 +1270,7 @@ app_server <- function(input, output, session) {
         p <- ggplot(combined, aes(y = Value, x = Type, fill = Type)) +
           geom_boxplot(alpha = 0.7) +
           facet_wrap(~ Column, scales = "free") +
-          scale_fill_manual(values = c("Pre-Filter" = "#DB3124", "Post-Filter" = "#4B74B2")) +
+          scale_fill_manual(values = c("Pre-Filter" = preFilterColor(), "Post-Filter" = postFilterColor())) +
           labs(title = "Pre vs Post Filter Data Distribution (Boxplot)", x = "Type", y = "Value") +
           theme_minimal(base_size = 14) +
           theme(

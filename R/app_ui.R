@@ -201,37 +201,68 @@ app_ui <- function(request) {
             shiny::uiOutput("fileUploadUI")
           ),
 
-          shiny::uiOutput("columnSelectionUI"),
+          # Visualization Options Panel
+          shiny::wellPanel(
+            shiny::h4("📊 Visualization Options", style = "margin-top: 0; color: #2c3e50; font-weight: bold;"),
+            
+            shiny::uiOutput("columnSelectionUI"),
 
-          shiny::h4(shiny::textOutput("categoricalFilterTitle")),
-          shiny::uiOutput("categoricalSelectionUI"),
-          shiny::uiOutput("categoricalFilters"),
+            shiny::h5(shiny::textOutput("categoricalFilterTitle"), style = "margin-top: 20px; margin-bottom: 10px; color: #34495e;"),
+            shiny::uiOutput("categoricalSelectionUI"),
+            shiny::uiOutput("categoricalFilters"),
 
-          shiny::uiOutput("plotTypeUI"),
+            shiny::h5(shiny::textOutput("plotTypeTitle"), style = "margin-top: 20px; margin-bottom: 10px; color: #34495e;"),
+            shiny::uiOutput("plotTypeUI"),
+            shiny::uiOutput("binsUI"),
 
-          shiny::uiOutput("binsUI"),
-
-          shiny::h4(shiny::textOutput("qcFilterTitle")),
-
-          shiny::uiOutput("qcModeUI"),
-
-          # Uniform QC mode (original behavior)
-          shiny::conditionalPanel(
-            condition = "input.qcMode == 'uniform'",
-            shiny::uiOutput("uniformQCControls")
-          ),
-
-          # Individual QC mode (new feature)
-          shiny::conditionalPanel(
-            condition = "input.qcMode == 'individual'",
+            # Color customization panel
             shiny::div(
-              id = "individualQC",
-              shiny::h5(shiny::textOutput("individualQCTitle")),
-              shiny::uiOutput("individualQCControls")
+              style = "margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;",
+              shiny::div(
+                style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;",
+                shiny::h5(shiny::textOutput("colorCustomizationTitle"), style = "margin: 0; color: #495057; font-weight: bold;"),
+                shiny::actionButton("toggleColorOptions", 
+                                   shiny::textOutput("showColorOptionsText", inline = TRUE),
+                                   class = "btn btn-sm btn-outline-primary",
+                                   style = "margin-left: 10px;")
+              ),
+              shiny::conditionalPanel(
+                condition = "input.toggleColorOptions % 2 == 1",
+                shiny::uiOutput("colorCustomizationUI")
+              )
             )
           ),
 
-          shiny::uiOutput("actionButtonsUI")
+          # Quality Control Options Panel
+          shiny::wellPanel(
+            shiny::h4("🔍 Quality Control Options", style = "margin-top: 0; color: #2c3e50; font-weight: bold;"),
+            shiny::h5(shiny::textOutput("qcFilterTitle"), style = "margin-top: 0; margin-bottom: 15px; color: #34495e;"),
+
+            shiny::uiOutput("qcModeUI"),
+
+            # Uniform QC mode (original behavior)
+            shiny::conditionalPanel(
+              condition = "input.qcMode == 'uniform'",
+              shiny::uiOutput("uniformQCControls")
+            ),
+
+            # Individual QC mode (new feature)
+            shiny::conditionalPanel(
+              condition = "input.qcMode == 'individual'",
+              shiny::div(
+                id = "individualQC",
+                shiny::h5(shiny::textOutput("individualQCTitle")),
+                shiny::uiOutput("individualQCControls")
+              )
+            ),
+
+            # Action buttons section
+            shiny::div(
+              style = "margin-top: 20px; padding: 15px; background-color: #e8f5e8; border-radius: 5px; border: 1px solid #c3e6c3;",
+              shiny::h5("📊 Apply & Download", style = "margin-top: 0; margin-bottom: 15px; color: #2d5a2d; font-weight: bold;"),
+              shiny::uiOutput("actionButtonsUI")
+            )
+          )
         ),
 
         # ---- RIGHT: outputs ----

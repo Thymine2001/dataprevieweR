@@ -1,0 +1,10 @@
+name: datapreviewer
+title: Data Preview and QC Tool
+username: vb6clt-huangyi-tang
+account: vb6clt-huangyi-tang
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15410538
+bundleId: 10943018
+url: https://vb6clt-huangyi-tang.shinyapps.io/datapreviewer/
+version: 1

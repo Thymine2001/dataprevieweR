@@ -24,9 +24,22 @@ get_label <- function(key, lang = "en") {
     
     # Plot options
     plot_type = list(en = "Plot Type", zh = "\u56fe\u8868\u7c7b\u578b", pt = "Tipo de Gr\u00e1fico"),
+    plot_type_title = list(en = "Chart Type & Settings", zh = "\u56fe\u8868\u7c7b\u578b\u4e0e\u8bbe\u7f6e", pt = "Tipo de Gr\u00e1fico e Configura\u00e7\u00f5es"),
     histogram = list(en = "Histogram", zh = "\u76f4\u65b9\u56fe", pt = "Histograma"),
     boxplot = list(en = "Boxplot", zh = "\u76d2\u7ebf\u56fe", pt = "Boxplot"),
     hist_bin = list(en = "Histogram Bin Size", zh = "\u76f4\u65b9\u56fe Bin \u5927\u5c0f", pt = "Tamanho do Bin do Histograma"),
+    
+    # Color customization
+    color_customization = list(en = "Color Customization", zh = "\u989c\u8272\u81ea\u5b9a\u4e49", pt = "Personaliza\u00e7\u00e3o de Cores"),
+    show_color_options = list(en = "Show Color Options", zh = "\u663e\u793a\u989c\u8272\u9009\u9879", pt = "Mostrar Op\u00e7\u00f5es de Cor"),
+    hide_color_options = list(en = "Hide Color Options", zh = "\u9690\u85cf\u989c\u8272\u9009\u9879", pt = "Ocultar Op\u00e7\u00f5es de Cor"),
+    pre_filter_color = list(en = "Pre-Filter Color", zh = "\u8d28\u63a7\u524d\u989c\u8272", pt = "Cor Pr\u00e9-Filtro"),
+    post_filter_color = list(en = "Post-Filter Color", zh = "\u8d28\u63a7\u540e\u989c\u8272", pt = "Cor P\u00f3s-Filtro"),
+    color_input_label = list(en = "Color (RGB hex, e.g., #FF0000):", zh = "\u989c\u8272\uff08RGB\u5341\u516d\u8fdb\u5236\uff0c\u5982 #FF0000\uff09\uff1a", pt = "Cor (hex RGB, ex: #FF0000):"),
+    color_picker_label = list(en = "Or use color picker:", zh = "\u6216\u4f7f\u7528\u989c\u8272\u9009\u62e9\u5668\uff1a", pt = "Ou use o seletor de cores:"),
+    color_palette_label = list(en = "Choose from color palette:", zh = "\u4ece\u989c\u8272\u8c03\u8272\u677f\u9009\u62e9\uff1a", pt = "Escolha da paleta de cores:"),
+    reset_colors = list(en = "Reset to Default Colors", zh = "\u91cd\u7f6e\u4e3a\u9ed8\u8ba4\u989c\u8272", pt = "Redefinir para Cores Padr\u00e3o"),
+    default_colors = list(en = "Default Colors", zh = "\u9ed8\u8ba4\u989c\u8272", pt = "Cores Padr\u00e3o"),
     
     # QC options
     qc_filter_options = list(en = "QC Filter Options", zh = "\u8d28\u63a7\u8fc7\u6ee4\u9009\u9879", pt = "Op\u00e7\u00f5es de Filtro QC"),
